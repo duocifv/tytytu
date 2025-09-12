@@ -66,11 +66,15 @@ async def on_shutdown():
 # -----------------------------
 # Webhook endpoint
 # -----------------------------
-@app.post("webhook")
+@app.post("/webhook")
 async def telegram_webhook(request: Request):
-    data = await request.json()
+    try:
+        data = await request.json()
+    except Exception:
+        logger.warning("Webhook called with empty or invalid JSON")
+        return {"ok": False, "error": "invalid JSON"}
+    
     update = Update.de_json(data, Bot(BOT_TOKEN))
-    # Đẩy update vào bot
     await bot_app.update_queue.put(update)
     return {"ok": True}
 

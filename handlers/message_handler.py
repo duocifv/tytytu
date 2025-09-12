@@ -105,14 +105,103 @@ class MessageHandler:
             logger.debug(f"📊 Số lượng phiên đang hoạt động: {len(self.user_sessions)}")
             
         except Exception as e:
-            logger.critical(f"❌ LỖI NGHIÊM TRỌNG khi xử lý tin nhắn: {str(e)}", exc_info=True)
-            try:
-                logger.warning("🔄 Đang thử gửi thông báo lỗi cho người dùng...")
-                await update.message.reply_text(
-                    "❌ Đã xảy ra lỗi khi xử lý yêu cầu của bạn. Vui lòng thử lại sau."
+            error_message = str(e)
+            error_lower = error_message.lower()
+            
+            # Extract user info safely
+            user_id = getattr(update.effective_user, 'id', 'unknown')
+            username = getattr(update.effective_user, 'username', 'unknown')
+            
+            # List of possible chat not found/blocked error messages (case-insensitive)
+            chat_errors = [
+                # Chat not found variations
+                "chat not found", 
+                "chat_not_found", 
+                "no chat found",
+                "Chat not found",
+                "CHAT NOT FOUND",
+                "chat not found",  # Original case
+                "Chat not found",  # First letter capitalized
+                "CHAT NOT FOUND",  # All caps
+                
+                # Bot blocked by user errors
+                "bot was blocked by the user",
+                "bot can't initiate conversation with a user",
+                "bot was kicked",
+                "bot is not a member",
+                "bot is not a member of the supergroup chat",
+                "bot can't send messages to this chat",
+                "bot was kicked from the group chat",
+                "bot was kicked from this group",
+                "bot is not a member of the channel chat",
+                "bot is not a member of the supergroup",
+                "bot is not a member of this chat",
+                "bot is not a member of the group chat",
+                "bot was blocked by the user",
+                "bot can't send messages to bots",
+                "bot can't send messages to this user",
+                "bot was blocked by the user",
+                
+                # Additional error patterns
+                "peer id invalid",
+                "chat not exist",
+                "chat doesn't exist",
+                "chat does not exist",
+                "chat is deactivated",
+                "chat is inactive",
+                "user is deactivated",
+                "user is inactive",
+                "user not found",
+                "user not exist",
+                "user doesn't exist",
+                "user does not exist",
+                "group chat was deactivated",
+                "supergroup chat was deactivated",
+                "channel chat was deactivated"
+            ]
+            
+            # Check if the error is a chat not found/blocked error
+            is_chat_error = any(err in error_lower for err in [e.lower() for e in chat_errors])
+            
+            if is_chat_error:
+                # Determine the specific type of chat error
+                error_type = "blocked" if any(blocked in error_lower for blocked in [
+                    "blocked", "kicked", "not a member", "can't send messages"
+                ]) else "not found"
+                
+                logger.warning(
+                    f"⚠️ Không thể gửi tin nhắn: Chat {error_type}. "
+                    f"User ID: {user_id}, Username: @{username}, "
+                    f"Error: {error_message}"
                 )
-                logger.info("✅ Đã gửi thông báo lỗi cho người dùng")
+                
+                # Clean up the session if it exists
+                if user_id != 'unknown' and user_id in self.user_sessions:
+                    del self.user_sessions[user_id]
+                    logger.info(f"🧹 Đã xóa phiên cho người dùng ID: {user_id} (Lý do: chat {error_type})")
+                return
+                
+            # Log other errors
+            logger.critical(
+                f"❌ LỖI NGHIÊM TRỌNG khi xử lý tin nhắn từ @{username} (ID: {user_id}): {error_message}", 
+                exc_info=True
+            )
+                
+            try:
+                # Only try to send error message if we have a valid message object
+                if update and update.message:
+                    logger.warning("🔄 Đang thử gửi thông báo lỗi cho người dùng...")
+                    await update.message.reply_text(
+                        "❌ Đã xảy ra lỗi khi xử lý yêu cầu của bạn. Vui lòng thử lại sau."
+                    )
+                    logger.info("✅ Đã gửi thông báo lỗi cho người dùng")
             except Exception as send_error:
                 logger.error(f"❌ KHÔNG THỂ gửi thông báo lỗi: {send_error}", exc_info=True)
+                
+                # If we can't send messages, clean up the session
+                if "chat not found" in str(send_error).lower() and update.effective_user:
+                    if update.effective_user.id in self.user_sessions:
+                        del self.user_sessions[update.effective_user.id]
+                        logger.info(f"🧹 Đã xóa phiên cho người dùng ID: {update.effective_user.id} (không thể gửi tin nhắn)")
             
             logger.info("🔄 Kết thúc xử lý tin nhắn với lỗi")
