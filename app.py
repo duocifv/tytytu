@@ -3,12 +3,14 @@ import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from telegram import Update, Bot
-from telegram.ext import Application, MessageHandler, filters, CommandHandler, ContextTypes
+from telegram.ext import Application, MessageHandler, filters, CommandHandler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from handlers.message_handler import MessageHandler as MessageHandlerClass
-from flows.telegram_flow import process_message_flow
 
+# -----------------------------
+# Logging và environment
+# -----------------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -18,9 +20,10 @@ if not BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN missing in .env")
 
 PORT = int(os.environ.get("PORT", 10000))
+WEBHOOK_URL = os.getenv("WEBHOOK")  # ví dụ: https://yourdomain.com/webhook
 
 # -----------------------------
-# FastAPI app
+# FastAPI app và handler
 # -----------------------------
 app = FastAPI()
 handler = MessageHandlerClass()
@@ -33,32 +36,43 @@ bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.hand
 bot_app.add_handler(CommandHandler("start", handler.handle_start))
 bot_app.add_handler(CommandHandler("help", handler.handle_help))
 
-# Add startup event to set up the webhook
+# -----------------------------
+# APScheduler
+# -----------------------------
+scheduler = AsyncIOScheduler()
+
+async def scheduled_task_1():
+    """Task đơn giản chỉ in log ra"""
+    logger.info("⏰ Running scheduled task 1...")
+
+# Schedule task mỗi 5 phút từ 5:00 đến 20:00
+scheduler.add_job(scheduled_task_1, CronTrigger(hour="5-20", minute="*/5"))
+
+# -----------------------------
+# Startup event
+# -----------------------------
 @app.on_event("startup")
 async def on_startup():
-    webhook_url = os.getenv("webhook")
-    if webhook_url:
-        logger.info(f"🌍 Setting webhook to: {webhook_url}")
+    # Set webhook nếu có
+    if WEBHOOK_URL:
+        logger.info(f"🌍 Setting webhook to: {WEBHOOK_URL}")
         await bot_app.initialize()
         await bot_app.start()
-        await bot_app.bot.set_webhook(webhook_url)
+        await bot_app.bot.set_webhook(WEBHOOK_URL)
     
-    # Start the scheduler
+    # Start scheduler
     if not scheduler.running:
         scheduler.start()
         logger.info("⏰ Scheduler started")
 
+# -----------------------------
+# Shutdown event
+# -----------------------------
 @app.on_event("shutdown")
 async def on_shutdown():
-    logger.info("🛑 Shutting down...")
+    logger.info("🛑 FastAPI server is shutting down...")
     
-    # Remove webhook
-    if 'bot_app' in globals():
-        await bot_app.bot.delete_webhook()
-        await bot_app.stop()
-        await bot_app.shutdown()
-    
-    # Shutdown scheduler
+    # Không xóa webhook và stop bot để bot chạy liên tục
     if 'scheduler' in globals() and scheduler.running:
         scheduler.shutdown()
         logger.info("⏰ Scheduler stopped")
@@ -77,36 +91,6 @@ async def telegram_webhook(request: Request):
     update = Update.de_json(data, Bot(BOT_TOKEN))
     await bot_app.update_queue.put(update)
     return {"ok": True}
-
-# -----------------------------
-# APScheduler tasks
-# -----------------------------
-# Initialize the async scheduler
-scheduler = AsyncIOScheduler()
-
-async def scheduled_task_1():
-    """Example scheduled task that logs user statistics"""
-    try:
-        logger.info("📊 Running scheduled task: User statistics")
-        if hasattr(handler, 'user_sessions'):
-            active_sessions = len(handler.user_sessions)
-            logger.info(f"👥 Active user sessions: {active_sessions}")
-            
-            # Log some basic statistics
-            if active_sessions > 0:
-                usernames = [
-                    f"@{session.get('username', 'unknown')}" 
-                    for session in handler.user_sessions.values()
-                    if session.get('username')
-                ]
-                if usernames:
-                    logger.info(f"   Active users: {', '.join(usernames[:5])}" + 
-                               ("..." if len(usernames) > 5 else ""))
-    except Exception as e:
-        logger.error(f"❌ Error in scheduled task: {e}", exc_info=True)
-
-# Schedule tasks to run every 5 minutes from 5:00 to 20:00
-scheduler.add_job(scheduled_task_1, CronTrigger(hour="5-20", minute="*/5"))
 
 # -----------------------------
 # Run FastAPI via Uvicorn

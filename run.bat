@@ -27,6 +27,7 @@ echo [*] Nhan Ctrl+C de thoat
 echo.
 
 :: Start the main application
-py app.py
+py -m uvicorn app:app --host 0.0.0.0 --port 10000
+:: python -m uvicorn app:app --host 0.0.0.0 --port 10000
 
 pause
