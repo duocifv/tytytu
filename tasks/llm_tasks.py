@@ -1,39 +1,43 @@
 """
-Các tác vụ xử lý ngôn ngữ tự nhiên sử dụng mô hình ngôn ngữ lớn (LLM).
+Natural Language Processing tasks using Large Language Models (LLM).
 """
-
 from prefect import task
 from typing import Dict, Any, Optional
-from langchain.chat_models import init_chat_model
 import logging
 from dotenv import load_dotenv
-from tasks.tool_tasks import lay_danh_sach_cong_cu
 from tasks.llm_client import llm
+from tasks.tool_agent import TOOLS
 
 load_dotenv()
 
-# Logger chuẩn Python
+# Configure logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 
-@task(name="phan-tich-y-dinh")
-async def phan_tich_y_dinh(cau_hoi: str) -> str:
+@task(name="analyze-intent")
+async def analyze_intent(question: str) -> str:
     """
     Phân tích ý định của câu hỏi người dùng.
-
+    
     Args:
-        cau_hoi: Nội dung câu hỏi cần phân tích
-
+        question: Nội dung câu hỏi cần phân tích
+        
     Returns:
         str: Tên công cụ hoặc hành động phù hợp
     """
-    logger.info(f"🔍 Phân tích ý định: {cau_hoi[:50]}...")
-    # Lấy tool list động
-    tools = lay_danh_sach_cong_cu()
-    tool_text = "\n".join([f"- {k}: {v}" for k, v in tools.items()])
+    logger.info(f"[LLM] Đang phân tích ý định: {question[:50]}...")
+    
+    # Lấy danh sách công cụ
+    tool_descriptions = {}
+    for tool in TOOLS:
+        schema = tool.schema()
+        tool_name = tool.__name__
+        tool_descriptions[tool_name] = schema.get('description', 'No description available')
+    
+    tool_text = "\n".join([f"- {k}: {v}" for k, v in tool_descriptions.items()])
     
     prompt_text = f"""
 Bạn là một trợ lý thông minh. Hãy phân tích câu hỏi và chọn công cụ phù hợp.
@@ -41,46 +45,48 @@ Bạn là một trợ lý thông minh. Hãy phân tích câu hỏi và chọn c�
 Các công cụ có sẵn:
 {tool_text}
 
-Câu hỏi: {cau_hoi}
+Câu hỏi: {question}
 
 Trả lời bằng tên công cụ phù hợp nhất.
 """
     try:
         response = await llm.ainvoke(prompt_text)
-        return response.content.strip().lower()
+        intent = response.content.strip().lower()
+        logger.info(f"[LLM] Đã xác định ý định: {intent}")
+        return intent
     except Exception as e:
-        logger.error(f"❌ Lỗi khi phân tích ý định: {e}")
-        return "hoi_dap"  # Mặc định
+        logger.error(f"[LLM] Lỗi khi phân tích ý định: {e}")
+        return "general_qa"  # Giá trị mặc định
 
-@task(name="tao-phat-bieu")
-async def tao_phat_bieu(
-    cau_hoi: str,
-    nguyen_canh: str = "",
-    phan_hoi_cong_cu: str = ""
+@task(name="generate-response")
+async def generate_response(
+    question: str,
+    context: str = "",
+    tool_output: str = ""
 ) -> str:
     """
     Tạo phản hồi tự nhiên dựa trên câu hỏi và ngữ cảnh.
-
+    
     Args:
-        cau_hoi: Nội dung câu hỏi của người dùng
-        nguyen_canh: Thông tin bổ sung từ cơ sở dữ liệu
-        phan_hoi_cong_cu: Kết quả từ các công cụ đã thực thi
-
+        question: Nội dung câu hỏi của người dùng
+        context: Thông tin bổ sung từ cơ sở dữ liệu
+        tool_output: Kết quả từ các công cụ đã thực thi
+        
     Returns:
         str: Phản hồi được tạo ra
     """
-    logger.info("💭 Tạo phản hồi...")
-
+    logger.info("[LLM] Đang tạo phản hồi...")
+    
     prompt_text = f"""
 Bạn là một trợ lý AI hữu ích. Hãy trả lời câu hỏi dựa trên thông tin được cung cấp.
 
-Câu hỏi: {cau_hoi}
+Câu hỏi: {question}
 
 Ngữ cảnh bổ sung:
-{nguyen_canh or "Không có thông tin bổ sung."}
+{context or "Không có thông tin bổ sung."}
 
 Kết quả từ công cụ:
-{phan_hoi_cong_cu or "Không có kết quả từ công cụ."}
+{tool_output or "Không có kết quả từ công cụ."}
 
 Hãy trả lời một cách ngắn gọn và chính xác.
 """
@@ -88,5 +94,5 @@ Hãy trả lời một cách ngắn gọn và chính xác.
         response = await llm.ainvoke(prompt_text)
         return response.content.strip()
     except Exception as e:
-        logger.error(f"❌ Lỗi khi tạo phản hồi: {e}")
-        return "Xin lỗi, tôi gặp khó khăn khi xử lý yêu cầu của bạn. Vui lòng thử lại sau."
+        logger.error(f"[LLM] Lỗi khi tạo phản hồi: {e}")
+        return "❌ Đã xảy ra lỗi khi xử lý yêu cầu của bạn. Vui lòng thử lại sau."

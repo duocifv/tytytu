@@ -1,106 +1,132 @@
 """
-Luồng xử lý tương tác chat chính của ứng dụng.
-Xử lý tin nhắn người dùng, phân tích ý định và tạo phản hồi phù hợp.
-"""
+Main chat interaction flow for the application.
 
+Handles user messages, analyzes intent, and generates appropriate responses.
+"""
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from prefect import flow, get_run_logger
-from tasks import phan_tich_y_dinh, tao_phat_bieu, thuc_thi_cong_cu, truy_van_du_lieu
+from tasks import (
+    analyze_intent, 
+    generate_response,
+    execute_tool,
+    search_knowledge_base,
+    process_with_agent
+)
 
 @dataclass
-class PhanHoi:
+class BotResponse:
     """
-    Lớp đóng gói phản hồi từ chatbot
+    Class representing a bot response.
     
-    Thuộc tính:
-        noi_dung: Nội dung phản hồi
-        thanh_cong: Trạng thái xử lý (True/False)
-        metadata: Thông tin bổ sung (tùy chọn)
+    Attributes:
+        content: The response content
+        success: Whether the processing was successful
+        metadata: Additional metadata (optional)
     """
-    noi_dung: str
-    thanh_cong: bool = True
+    content: str
+    success: bool = True
     metadata: Optional[Dict[str, Any]] = None
 
-@flow(name="luong-chat")
-async def chat_flow(cau_hoi: str, session_id: Optional[str] = None) -> PhanHoi:
+@flow(name="chat-flow")
+async def chat_flow(
+    user_input: str, 
+    session_id: Optional[str] = None
+) -> BotResponse:
     """
-    Luồng xử lý chính cho mỗi tin nhắn từ người dùng
+    Main processing flow for each user message.
     
-    Quy trình:
-    1. Phân tích ý định người dùng
-    2. Thực thi công cụ hoặc tìm kiếm thông tin
-    3. Tạo phản hồi phù hợp
+    Process:
+    1. Analyze user intent
+    2. Execute tools or search for information
+    3. Generate appropriate response
     
     Args:
-        cau_hoi: Nội dung câu hỏi từ người dùng
-        session_id: ID phiên làm việc (nếu có)
+        user_input: The user's message
+        session_id: Optional session ID for conversation tracking
         
     Returns:
-        PhanHoi: Đối tượng chứa phản hồi và metadata
+        BotResponse: Object containing the response and metadata
     """
     logger = get_run_logger()
-    logger.info(f"🟢 Bắt đầu xử lý câu hỏi: {cau_hoi[:50]}...")
+    logger.info(f"[Chat] Bắt đầu xử lý câu hỏi: {user_input[:50]}...")
     
     try:
-        # Bước 1: Phân tích ý định
-        logger.info("🔍 Phân tích ý định người dùng...")
-        y_dinh = await phan_tich_y_dinh(cau_hoi)
-        logger.info(f"✅ Ý định đã xác định: {y_dinh}")
+        # Step 1: Analyze intent
+        logger.info("[Chat] Đang phân tích ý định...")
+        intent = await analyze_intent(user_input)
+        logger.info(f"[Chat] Ý định: {intent}")
         
-        # Bước 2: Xử lý dựa trên ý định
-        if y_dinh == "truy_van_du_lieu":
-            logger.info("🔎 Truy vấn cơ sở dữ liệu...")
-            du_lieu = await truy_van_du_lieu(cau_hoi)
-            context = "\n".join(du_lieu) if du_lieu else ""
-            phan_hoi_cong_cu = ""
+        # Step 2: Process based on intent
+        if intent == "search_knowledge_base":
+            logger.info("[Chat] Đang tìm kiếm thông tin...")
+            search_results = await search_knowledge_base(user_input)
+            context = "\n".join(search_results) if search_results else ""
+            tool_output = ""
         else:
-            logger.info(f"⚙️ Đang thực thi công cụ: {y_dinh}")
-            phan_hoi_cong_cu = await thuc_thi_cong_cu(y_dinh, {"truy_van": cau_hoi})
-            context = ""
+            # Use agent for other intents
+            logger.info(f"[Chat] Đang xử lý với agent: {intent}")
+            agent_result = await process_with_agent(user_input)
+            
+            if agent_result.get("success"):
+                tool_output = agent_result.get("response", {})
+                context = ""
+            else:
+                error_msg = agent_result.get("error", "Lỗi không xác định")
+                logger.error(f"[Chat] Lỗi khi xử lý với agent: {error_msg}")
+                return BotResponse(
+                    content="Xin lỗi, tôi gặp khó khăn khi xử lý yêu cầu của bạn.",
+                    success=False,
+                    metadata={"error": error_msg}
+                )
         
-        # Bước 3: Tạo phản hồi
-        logger.info("💭 Tạo phản hồi...")
-        phan_hoi = await tao_phat_bieu(
-            cau_hoi=cau_hoi,
-            nguyen_canh=context,
-            phan_hoi_cong_cu=phan_hoi_cong_cu
+        # Step 3: Generate response
+        logger.info("[Chat] Đang tạo phản hồi...")
+        response = await generate_response(
+            question=user_input,
+            context=context,
+            tool_output=str(tool_output)
         )
         
-        logger.info("✅ Xử lý hoàn tất")
-        return PhanHoi(
-            noi_dung=phan_hoi,
+        return BotResponse(
+            content=response,
+            success=True,
             metadata={
-                "y_dinh": y_dinh,
-                "su_dung_nguyen_canh": bool(context),
+                "intent": intent,
+                "context": context,
+                "tool_output": tool_output,
                 "session_id": session_id
             }
         )
         
     except Exception as e:
-        loi = str(e)
-        logger.error(f"❌ Lỗi: {loi}")
-        return PhanHoi(
-            noi_dung=f"Xin lỗi, tôi gặp lỗi: {loi}",
-            thanh_cong=False,
-            metadata={"loi": loi, "session_id": session_id}
+        logger.error(f"[Chat] Lỗi khi xử lý: {e}", exc_info=True)
+        return BotResponse(
+            content="❌ Đã xảy ra lỗi khi xử lý yêu cầu của bạn. Vui lòng thử lại sau.",
+            success=False,
+            metadata={"error": str(e)}
         )
 
-# Chạy thử
+# Test the flow
 if __name__ == "__main__":
     import asyncio
     
-    async def chay_thu():
-        """Chạy thử luồng chat với câu hỏi mẫu"""
-        mau_cau_hoi = [
+    async def test_flow():
+        """Test the chat flow with sample questions"""
+        test_questions = [
             "Thời tiết hôm nay thế nào?",
-            "1 + 1 bằng mấy?",
-            "Tỷ giá USD hôm nay"
+            "Tìm kiếm thông tin về AI",
+            "Tính toán 2 + 2"
         ]
         
-        for cau_hoi in mau_cau_hoi:
-            print(f"\n👤 Hỏi: {cau_hoi}")
-            ket_qua = await chat_flow(cau_hoi)
-            print(f"🤖 Đáp: {ket_qua.noi_dung}")
+        for question in test_questions:
+            print(f"\n{'='*50}")
+            print(f"Người dùng: {question}")
+            
+            response = await chat_flow(question)
+            print(f"\nBot: {response.content}")
+            
+            if not response.success:
+                print(f"\nLỗi: {response.metadata.get('error', 'Không xác định')}")
     
-    asyncio.run(chay_thu())
+    asyncio.run(test_flow())

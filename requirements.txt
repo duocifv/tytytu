@@ -19,3 +19,6 @@ python-telegram-bot
 # Development dependencies
 python-dotenv
 
+# Web server (Render healthcheck)
+flask
+
