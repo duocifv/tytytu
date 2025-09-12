@@ -116,6 +116,10 @@ class MessageHandler:
             if chart_base64:
                 import base64, io
                 from telegram import InputFile
+                
+                # Nếu có prefix "data:image/png;base64,", thì bỏ đi
+                if chart_base64.startswith("data:image"):
+                    chart_base64 = chart_base64.split(",")[1]
 
                 img_bytes = base64.b64decode(chart_base64)
                 bio = io.BytesIO(img_bytes)
