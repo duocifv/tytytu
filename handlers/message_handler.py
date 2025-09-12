@@ -94,12 +94,33 @@ class MessageHandler:
             # Gửi phản hồi cho người dùng
             logger.debug(f"📤 Đang gửi phản hồi cho @{user.username}")
             
-            # Handle response which could be a dict with 'content' or a string
-            response_text = response.get('content') if isinstance(response, dict) else response
+            # -------------------------
+            # Gửi phản hồi cho người dùng
+            # -------------------------
+            response_text = None
+            chart_base64 = None
+
+            if isinstance(response, dict):
+                response_text = response.get('text') or response.get('content')
+                chart_base64 = response.get('chart_base64')
+            else:
+                response_text = str(response)
+
             if not response_text:
                 response_text = "Xin lỗi, tôi không thể tạo phản hồi phù hợp vào lúc này."
-                
+
+            # Gửi text trước
             await update.message.reply_text(response_text)
+
+            # Nếu có ảnh (base64 chart) thì gửi thêm
+            if chart_base64:
+                import base64, io
+                from telegram import InputFile
+
+                img_bytes = base64.b64decode(chart_base64)
+                bio = io.BytesIO(img_bytes)
+                bio.name = "chart.png"
+                await context.bot.send_photo(chat_id=update.effective_chat.id, photo=InputFile(bio))
             
             logger.info(f"✅ Đã gửi thành công phản hồi cho @{user.username}")
             logger.debug(f"📊 Số lượng phiên đang hoạt động: {len(self.user_sessions)}")

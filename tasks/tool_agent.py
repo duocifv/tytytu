@@ -15,7 +15,7 @@ from tools.create_blog import CreateBlogParams, handle_create_blog
 logger = logging.getLogger(__name__)
 
 # Registry
-TOOLS = [TimKiemThongTin, TinhToan, ThoiTiet, ChuyenDoiTienTe]
+TOOLS = [TimKiemThongTin, TinhToan, ThoiTiet, ChuyenDoiTienTe, ListBlogs, CreateBlogParams]
 # parser = PydanticToolsParser(tools=TOOLS)
 
 TOOL_NAME_TO_MODEL: Dict[str, BaseModel] = {

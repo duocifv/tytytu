@@ -115,6 +115,14 @@ async def process_with_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 tool_results.append({"tool_name": tool_name, "args": params, "dispatch": dispatch_res})
 
         # Build reply: let LLM synthesize a user-facing reply in Vietnamese based on tool_results + user query
+        chart_base64 = None
+        if tool_results:
+            last = tool_results[-1]
+            if last.get("dispatch", {}).get("ok"):
+                r = last["dispatch"]["result"]
+                if isinstance(r, dict):
+                    chart_base64 = r.get("chart_base64")
+                    
         reply = None
         llm_raw = None
         if tool_results:
@@ -163,7 +171,13 @@ async def process_with_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 else:
                     reply = f"Error: {last.get('dispatch', {}).get('error')}"
 
-        return {"messages": messages, "tool_results": tool_results, "reply": reply, "llm_raw": llm_raw}
+        return {
+            "messages": messages,
+            "tool_results": tool_results,
+            "reply": reply,
+            "llm_raw": llm_raw,
+            "chart_base64": chart_base64  # thêm key này
+        }
 
     except Exception as e:
         logger_task.exception(f"❌ Lỗi khi chạy agent: {e}")

@@ -32,5 +32,10 @@ python-telegram-bot>=20.4
 python-telegram-bot[webhooks]
 
 # -----------------------------
+# Visualization / Statistics
+# -----------------------------
+matplotlib
+
+# -----------------------------
 # Development / utilities
 # -----------------------------

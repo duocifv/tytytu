@@ -69,9 +69,13 @@ async def process_message_flow(
         logger.info(f"tool_result: {tool_result}")
         # 1) Nếu agent đã tổng hợp reply (LLM synthesize) -> trả ngay
         reply = tool_result.get("reply")
+        chart_base64 = tool_result.get("chart_base64") 
         if reply:
             logger.info("Agent trả về reply đã được tổng hợp, trả cho user.")
-            return reply
+            return {
+                "text": reply,
+                "chart_base64": chart_base64   # trả kèm luôn ảnh nếu có
+            }
 
         # 2) Nếu có tool_results -> lấy kết quả đầu tiên để build response qua tao_phat_bieu
         tool_results = tool_result.get("tool_results", [])
@@ -94,12 +98,15 @@ async def process_message_flow(
 
             logger.info(f"Using first tool result to build reply: {tool_output}")
 
-            return await _generate_response(
-                message=message,
-                context=context,
-                tool_result=tool_output,
-                logger=logger
-            )
+            return {
+                "text": await _generate_response(
+                    message=message,
+                    context=context,
+                    tool_result="Không có kết quả từ công cụ.",
+                    logger=logger
+                ),
+                "chart_base64": None
+            }
 
         # 3) Fallback: không có reply lẫn tool result
         logger.info("No reply and no tool results -> fallback response.")
