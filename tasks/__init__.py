@@ -1,5 +1,5 @@
 """
-Gói chứa các task Prefect cho hệ thống Chatbot AI.
+Gói chứa các task cho hệ thống Chatbot AI.
 
 Bao gồm các tác vụ xử lý ngôn ngữ, tìm kiếm thông tin và tương tác với các công cụ.
 Tasks package for the application.

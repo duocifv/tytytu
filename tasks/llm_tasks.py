@@ -1,7 +1,6 @@
 """
 Natural Language Processing tasks using Large Language Models (LLM).
 """
-from prefect import task
 from typing import Dict, Any, Optional
 import logging
 from dotenv import load_dotenv
@@ -12,12 +11,14 @@ load_dotenv()
 
 # Configure logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
 
-@task(name="analyze-intent")
+# Task decorator for compatibility
+def task(name: str):
+    """Decorator to maintain compatibility with task functions"""
+    def decorator(func):
+        return func
+    return decorator
+
 async def analyze_intent(question: str) -> str:
     """
     Phân tích ý định của câu hỏi người dùng.
@@ -58,7 +59,6 @@ Trả lời bằng tên công cụ phù hợp nhất.
         logger.error(f"[LLM] Lỗi khi phân tích ý định: {e}")
         return "general_qa"  # Giá trị mặc định
 
-@task(name="generate-response")
 async def generate_response(
     question: str,
     context: str = "",

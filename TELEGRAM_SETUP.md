@@ -38,7 +38,7 @@
 - **Tự động phản hồi** tin nhắn từ người dùng
 - **Hỗ trợ đa ngữ cảnh** với lịch sử hội thoại
 - **Tích hợp RAG** để tìm kiếm thông tin
-- **Xử lý đa luồng** với Prefect
+- **Xử lý tác vụ nền** với APScheduler
 
 ## Gỡ lỗi
 

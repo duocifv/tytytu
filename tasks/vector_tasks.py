@@ -4,15 +4,28 @@ Vector database tasks using ChromaDB.
 This module provides functions for storing and retrieving documents
 using vector similarity search.
 """
-from prefect import task, get_run_logger
 from typing import List, Optional, Dict, Any
 import chromadb
 import uuid
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+def get_run_logger():
+    """Get the logger instance for tasks"""
+    return logger
 
 # Initialize ChromaDB client (stores data in ./chroma_db)
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
-@task(name="search-knowledge-base")
+# Task decorator for compatibility
+def task(name: str):
+    """Decorator to maintain compatibility with task functions"""
+    def decorator(func):
+        return func
+    return decorator
+
 async def search_knowledge_base(
     query: str, 
     top_k: int = 3,
@@ -52,7 +65,6 @@ async def search_knowledge_base(
         logger.error(f"[Vector] Lỗi khi tìm kiếm: {str(e)}", exc_info=True)
         return []
 
-@task(name="save-document")
 async def save_document(
     content: str, 
     metadata: Optional[Dict[str, Any]] = None,
@@ -93,7 +105,6 @@ async def save_document(
         logger.error(f"[Vector] Lỗi khi lưu tài liệu: {str(e)}", exc_info=True)
         return ""
 
-@task(name="delete-document")
 async def delete_document(
     doc_id: str,
     collection_name: str = "knowledge_base"

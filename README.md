@@ -1,11 +1,11 @@
-# 🤖 Chatbot AI với Prefect và LangChain
+# 🤖 Chatbot AI với APScheduler và LangChain
 
-Một hệ thống chatbot AI đơn giản nhưng mạnh mẽ, được xây dựng với Prefect và LangChain.
+Một hệ thống chatbot AI đơn giản nhưng mạnh mẽ, được xây dựng với APScheduler và LangChain.
 
 ## 🌟 Tính năng chính
 
 - **Xử lý ngôn ngữ tự nhiên** với mô hình Gemini Pro
-- **Quản lý luồng công việc** với Prefect
+- **Quản lý tác vụ nền** với APScheduler
 - **Tìm kiếm ngữ nghĩa** với cơ sở dữ liệu vector ChromaDB
 - **Hệ thống công cụ mở rộng** dễ dàng tích hợp
 - **Ghi log chi tiết** cho từng bước xử lý

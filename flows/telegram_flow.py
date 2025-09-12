@@ -11,14 +11,23 @@ Main processing flow for Telegram messages, including:
 """
 from typing import Dict, Any, Optional, Union, List
 import logging
-from prefect import flow, get_run_logger
 
 # Import tasks
 from tasks.llm_tasks import analyze_intent, generate_response
 from tasks.tool_tasks import process_with_agent
 from tasks.vector_tasks import search_knowledge_base
 
-@flow(name="telegram-message-flow")
+# Configure logging
+logger = logging.getLogger(__name__)
+
+def flow(func):
+    """Decorator to maintain compatibility with flow functions"""
+    return func
+
+def get_run_logger():
+    """Get the logger instance for tasks"""
+    return logger
+
 async def process_message_flow(
     message: str, 
     user_id: str,
@@ -35,8 +44,9 @@ async def process_message_flow(
     Returns:
         Dict chứa nội dung phản hồi và metadata
     """
-    logger = get_run_logger()
-    logger.info(f"🔄 Bắt đầu xử lý tin nhắn từ người dùng {user_id}")
+    logger = logging.getLogger(__name__)
+    logger.info(f"📨 Processing message from user {user_id}")
+    logger.debug(f"Message content: {message}")
     
     try:
         # Bước 1: Phân tích ý định

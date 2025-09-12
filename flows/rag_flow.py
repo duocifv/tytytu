@@ -2,12 +2,22 @@
 Luồng xử lý tìm kiếm và tạo phản hồi bằng RAG (Retrieval-Augmented Generation).
 Kết hợp tìm kiếm thông tin và tạo phản hồi tự động.
 """
-
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from prefect import flow, get_run_logger
+import logging
 from tasks import truy_van_du_lieu, tao_phat_bieu
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+def flow(func):
+    """Decorator to maintain compatibility with flow functions"""
+    return func
+
+def get_run_logger():
+    """Get the logger instance for tasks"""
+    return logger
 
 @dataclass
 class PhanHoiRAG:
@@ -18,7 +28,6 @@ class PhanHoiRAG:
     session_id: Optional[str] = None
     metadata: Dict[str, Any] = None
 
-@flow(name="luong-rag")
 async def rag_flow(cau_hoi: str, top_k: int = 3, session_id: str = None) -> PhanHoiRAG:
     """
     Xử lý câu hỏi bằng kỹ thuật RAG
@@ -36,7 +45,7 @@ async def rag_flow(cau_hoi: str, top_k: int = 3, session_id: str = None) -> Phan
         PhanHoiRAG: Đối tượng chứa phản hồi và thông tin liên quan
     """
     logger = get_run_logger()
-    logger.info(f"🔍 Bắt đầu xử lý RAG cho câu hỏi: {cau_hoi[:50]}...")
+    logger.info(f"Bắt đầu xử lý RAG cho câu hỏi: {cau_hoi[:50]}...")
     
     try:
         # Bước 1: Tìm kiếm tài liệu liên quan
@@ -92,7 +101,7 @@ if __name__ == "__main__":
         """Chạy thử luồng RAG với câu hỏi mẫu"""
         mau_cau_hoi = [
             "Chatbot là gì?",
-            "Cách sử dụng Prefect?",
+            "Cách sử dụng APScheduler?",
             "Giới thiệu về LangChain"
         ]
         

@@ -1,5 +1,4 @@
-from prefect import task, get_run_logger
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from tasks.tool_agent import dispatch_tool_call, TOOLS, TOOL_HANDLERS, TOOL_NAME_TO_MODEL
 from tasks.llm_client import llm
 from langgraph.prebuilt import create_react_agent
@@ -8,7 +7,18 @@ from pydantic import ValidationError
 import json
 import logging
 
+# Set up logging
 logger = logging.getLogger(__name__)
+
+# Simple task decorator that does nothing (replaces the scheduler.task decorator)
+def task(*args, **kwargs):
+    def decorator(func):
+        return func
+    return decorator
+
+def get_run_logger():
+    """Get the logger instance for tasks"""
+    return logger
 
 # -----------------------
 # LLM + Parser + Agent
@@ -27,7 +37,6 @@ agent_executor = create_react_agent(llm, TOOLS)
 # Tool Execution
 # -----------------------
 
-@task(name="execute-tool")
 async def execute_tool(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """Execute a single tool with the given input data."""
     logger = get_run_logger()
@@ -44,10 +53,9 @@ async def execute_tool(input_data: Dict[str, Any]) -> Dict[str, Any]:
         return {"ok": False, "error": error_msg}
 
 # -----------------------
-# Prefect tasks
+# Task Definitions
 # -----------------------
 
-@task(name="lay-danh-sach-cong-cu")
 def lay_danh_sach_cong_cu() -> Dict[str, str]:
     return {
         "tim_kiem_thong_tin": "Tìm kiếm thông tin trên internet",
@@ -59,7 +67,6 @@ def lay_danh_sach_cong_cu() -> Dict[str, str]:
 def get_available_tools() -> Dict[str, str]:
     return lay_danh_sach_cong_cu()
 
-@task(name="process_with_agent")
 async def process_with_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
     logger_task = get_run_logger()
     tool_name = input_data.get("tool_name")

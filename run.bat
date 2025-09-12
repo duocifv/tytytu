@@ -26,6 +26,7 @@ echo [*] Khoi dong thanh cong!
 echo [*] Nhan Ctrl+C de thoat
 echo.
 
-py -m prefect server start
+:: Start the main application
+py app.py
 
 pause

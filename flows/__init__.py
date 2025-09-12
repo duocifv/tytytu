@@ -1,5 +1,5 @@
 """
-Prefect flows for the AI Chatbot System.
+Flows for the AI Chatbot System.
 
 This package contains all flow definitions for the chatbot system,
 including the main chat flow, RAG flow, message flow, and other workflow orchestrations.

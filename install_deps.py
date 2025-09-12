@@ -17,7 +17,7 @@ def main():
     
     # Danh sách các gói cần cài đặt
     packages = [
-        "prefect==2.16.0",
+        "apscheduler==3.10.4",
         "pydantic==2.5.2",
         "langchain==0.1.0",
         "langchain-community==0.0.10",

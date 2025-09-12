@@ -5,7 +5,7 @@ Handles user messages, analyzes intent, and generates appropriate responses.
 """
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
-from prefect import flow, get_run_logger
+import logging
 from tasks import (
     analyze_intent, 
     generate_response,
@@ -13,6 +13,13 @@ from tasks import (
     search_knowledge_base,
     process_with_agent
 )
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+def flow(func):
+    """Decorator to maintain compatibility with flow functions"""
+    return func
 
 @dataclass
 class BotResponse:
@@ -28,7 +35,6 @@ class BotResponse:
     success: bool = True
     metadata: Optional[Dict[str, Any]] = None
 
-@flow(name="chat-flow")
 async def chat_flow(
     user_input: str, 
     session_id: Optional[str] = None
@@ -48,8 +54,7 @@ async def chat_flow(
     Returns:
         BotResponse: Object containing the response and metadata
     """
-    logger = get_run_logger()
-    logger.info(f"[Chat] Bắt đầu xử lý câu hỏi: {user_input[:50]}...")
+    logger.info(f"📥 Received message: {user_input} Bắt đầu xử lý câu hỏi: {user_input[:50]}...")
     
     try:
         # Step 1: Analyze intent

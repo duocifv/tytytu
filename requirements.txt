@@ -1,25 +1,36 @@
+# -----------------------------
 # Core dependencies
-prefect
+# -----------------------------
+fastapi
+uvicorn
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+python-dotenv
 pydantic
 
-# LangChain dependencies
+# -----------------------------
+# LangChain & AI
+# -----------------------------
 langchain
 langchain[google-genai]
 langchain-community
 langchain-chroma
 langgraph
-
 chromadb
 sentence-transformers
 
+# -----------------------------
+# Task scheduling
+# -----------------------------
+APScheduler
+
+# -----------------------------
 # Telegram bot
-telegram
-python-telegram-bot
+# -----------------------------
+python-telegram-bot>=20.4
 python-telegram-bot[webhooks]
 
-# Development dependencies
-python-dotenv
-
-# Web server (Render healthcheck)
-flask
-
+# -----------------------------
+# Development / utilities
+# -----------------------------
