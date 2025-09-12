@@ -15,6 +15,7 @@ sentence-transformers
 # Telegram bot
 telegram
 python-telegram-bot
+python-telegram-bot[webhooks]
 
 # Development dependencies
 python-dotenv
