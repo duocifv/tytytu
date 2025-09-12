@@ -8,6 +8,9 @@ from tools.search_tools import TimKiemThongTin, handle_tim_kiem_thong_tin
 from tools.math_tools import TinhToan, handle_tinh_toan
 from tools.weather_tools import ThoiTiet, handle_thoi_tiet
 from tools.chuyen_doi_tien_te import ChuyenDoiTienTe, handle_chuyen_doi_tien_te
+from tools.hydroponic_schedule import HydroponicSchedule, handle_hydroponic_schedule
+from tools.list_blogs import ListBlogs, handle_list_blogs
+from tools.create_blog import CreateBlogParams, handle_create_blog
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +23,9 @@ TOOL_NAME_TO_MODEL: Dict[str, BaseModel] = {
     "TinhToan": TinhToan,
     "ThoiTiet": ThoiTiet,
     "ChuyenDoiTienTe": ChuyenDoiTienTe,
+    "HydroponicSchedule": HydroponicSchedule,
+    "ListBlogs": ListBlogs,
+    "CreateBlog": CreateBlogParams,
 }
 
 TOOL_HANDLERS: Dict[str, Callable[..., Awaitable[Dict[str, Any]]]] = {
@@ -27,6 +33,9 @@ TOOL_HANDLERS: Dict[str, Callable[..., Awaitable[Dict[str, Any]]]] = {
     "TinhToan": handle_tinh_toan,
     "ThoiTiet": handle_thoi_tiet,
     "ChuyenDoiTienTe": handle_chuyen_doi_tien_te,
+    "HydroponicSchedule": handle_hydroponic_schedule,
+    "ListBlogs": handle_list_blogs,
+    "CreateBlog": handle_create_blog,
 }
 
 # Core Agent Logic
