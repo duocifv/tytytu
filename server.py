@@ -1,37 +1,43 @@
-# server.py
 import os
 import logging
-from flask import Flask, request, jsonify
-from main import TelegramBot  # main.py phải expose class TelegramBot
+from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import (
+    Application, MessageHandler, filters,
+    CommandHandler, ContextTypes
+)
+from handlers.message_handler import MessageHandler as MessageHandlerClass
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+load_dotenv()
 
-flask_app = Flask(__name__)
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+SECRET_TOKEN = os.getenv("WEBHOOK_SECRET")
+PORT = int(os.environ.get("PORT", 10000))
+WEBHOOK_URL = f"https://tytytu-mc9k.onrender.com/webhook/{SECRET_TOKEN}"
 
-# Khởi tạo bot
-bot = TelegramBot()
-bot.setup_handlers()
+# Init bot
+app = Application.builder().token(BOT_TOKEN).build()
+handler = MessageHandlerClass()
 
-# Webhook route để Telegram gửi update
-@flask_app.route("/webhook", methods=["POST"])
-def webhook():
-    update = request.get_json(force=True)
-    # Đẩy update vào bot handler
-    try:
-        import asyncio
-        asyncio.run(bot.app.update_queue.put(update))
-    except Exception as e:
-        logger.exception("❌ Lỗi khi xử lý webhook: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
-    return jsonify({"ok": True})
+# Command handlers
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🤖 Chào mừng bạn đến với AI Assistant!")
 
-# Healthcheck route
-@flask_app.route("/")
-def home():
-    return "🤖 Telegram bot webhook is running!"
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❓ Trợ giúp: /start /help")
+
+# Register handlers
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle_message))
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("help", help_cmd))
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    # Render: listen 0.0.0.0
-    flask_app.run(host="0.0.0.0", port=port)
+    logger.info("🤖 Starting Telegram bot webhook...")
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        webhook_url=WEBHOOK_URL,
+        secret_token=SECRET_TOKEN
+    )
