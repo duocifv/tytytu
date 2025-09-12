@@ -1,45 +1,37 @@
 # server.py
 import os
-import threading
-import asyncio
-from flask import Flask
-from main import main  # import main() từ main.py
+import logging
+from flask import Flask, request, jsonify
+from main import TelegramBot  # main.py phải expose class TelegramBot
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 flask_app = Flask(__name__)
 
+# Khởi tạo bot
+bot = TelegramBot()
+bot.setup_handlers()
+
+# Webhook route để Telegram gửi update
+@flask_app.route("/webhook", methods=["POST"])
+def webhook():
+    update = request.get_json(force=True)
+    # Đẩy update vào bot handler
+    try:
+        import asyncio
+        asyncio.run(bot.app.update_queue.put(update))
+    except Exception as e:
+        logger.exception("❌ Lỗi khi xử lý webhook: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify({"ok": True})
+
+# Healthcheck route
 @flask_app.route("/")
 def home():
-    return "🤖 Telegram bot is running on Render!"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    # dev server ok for Render healthcheck
-    flask_app.run(host="0.0.0.0", port=port)
-
-def _start_bot_in_thread():
-    """
-    Tạo event loop mới cho thread này -> đặt nó -> gọi main().
-    main() sẽ gọi Application.run_polling(...) và PTB sẽ tìm thấy event loop.
-    """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        main()
-    except Exception:
-        # để log lỗi lên console / Render logs nếu cần
-        import logging, traceback
-        logging.getLogger("server").exception("Bot crashed in thread:\n%s", traceback.format_exc())
-    finally:
-        # đóng loop nếu main() kết thúc
-        try:
-            loop.close()
-        except Exception:
-            pass
+    return "🤖 Telegram bot webhook is running!"
 
 if __name__ == "__main__":
-    # Start bot in background thread (thread has its own asyncio loop)
-    bot_thread = threading.Thread(target=_start_bot_in_thread, name="bot-thread", daemon=True)
-    bot_thread.start()
-
-    # Start Flask HTTP server for Render healthcheck (main thread)
-    run_flask()
+    port = int(os.environ.get("PORT", 10000))
+    # Render: listen 0.0.0.0
+    flask_app.run(host="0.0.0.0", port=port)
