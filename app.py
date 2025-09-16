@@ -14,6 +14,7 @@ from telegram.ext import (
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from handlers.message_handler import MessageHandler as MessageHandlerClass
+from nodes.manager import ManagerNode
 
 # -----------------------------
 # Logging và env
@@ -34,6 +35,8 @@ WEBHOOK_URL = os.getenv("WEBHOOK")  # e.g. https://yourdomain.com/webhook
 # -----------------------------
 handler = MessageHandlerClass()
 bot_app = Application.builder().token(BOT_TOKEN).build()
+manager = ManagerNode()
+customer_request = "Viết bài blog về AI cho khách hàng X"
 
 # Add telegram handlers (use alias TGMessageHandler to avoid name conflict)
 bot_app.add_handler(TGMessageHandler(filters.TEXT & ~filters.COMMAND, handler.handle_message))
@@ -47,6 +50,14 @@ async def scheduled_task_1():
     """Task đơn giản chỉ in log ra"""
     logger.info("⏰ Running scheduled task 1...")
 
+async def scheduled_blog_task():
+    """Chạy ManagerNode theo lịch 2 giờ 1 lần"""
+    try:
+        print("⏰ [Scheduler] Bắt đầu tạo blog tự động...")
+        final_result = manager.run(customer_request)
+        print("✅ [Scheduler] Hoàn tất tạo blog:", final_result)
+    except Exception as e:
+        print("⚠️ [Scheduler] Lỗi khi chạy ManagerNode:", e)
 
 # -----------------------------
 # Lifespan (startup / shutdown)
@@ -78,6 +89,15 @@ async def lifespan(app: FastAPI):
             logger.info("⏰ Scheduler started")
         # Ensure we don't add duplicate jobs on reload: remove if exists then add
         try:
+            if "manager_blog_job" not in [job.id for job in scheduler.get_jobs()]:
+                scheduler.add_job(
+                    scheduled_blog_task,
+                    CronTrigger(minute=0, hour="*/2"),  # mỗi 2 giờ
+                    id="manager_blog_job",
+                    replace_existing=True,
+                )
+                logger.info("✅ Scheduled job 'manager_blog_job' added (2h/lần)")
+
             if "scheduled_task_1" in [job.id for job in scheduler.get_jobs()]:
                 logger.debug("Scheduled job already exists - skipping add")
             else:
