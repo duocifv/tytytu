@@ -8,6 +8,7 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-dotenv
 pydantic
+httpx
 
 # -----------------------------
 # LangChain & AI
@@ -19,7 +20,7 @@ langchain-chroma
 langgraph
 chromadb
 sentence-transformers
-
+langchain_tavily
 # -----------------------------
 # Task scheduling
 # -----------------------------
@@ -30,6 +31,11 @@ APScheduler
 # -----------------------------
 python-telegram-bot>=20.4
 python-telegram-bot[webhooks]
+
+# -----------------------------
+# notion bot
+# -----------------------------
+notion-client
 
 # -----------------------------
 # Visualization / Statistics

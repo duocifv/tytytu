@@ -1,9 +1,7 @@
-from nodes.manager import ManagerNode
+import asyncio
+from services.notion_service import NotionService
+from nodes2.manager import run_blog_workflow
 
 if __name__ == "__main__":
-    customer_request = "Viết bài blog về AI cho khách hàng X"
-
-    manager = ManagerNode()
-    final_result = manager.run(customer_request)
-
-    print("\n🎯 Kết quả cuối cùng:", final_result)
+    notion_client = NotionService()
+    asyncio.run(run_blog_workflow(notion_client))
