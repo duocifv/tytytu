@@ -33,11 +33,6 @@ python-telegram-bot>=20.4
 python-telegram-bot[webhooks]
 
 # -----------------------------
-# notion bot
-# -----------------------------
-notion-client
-
-# -----------------------------
 # Visualization / Statistics
 # -----------------------------
 matplotlib
@@ -45,3 +40,5 @@ matplotlib
 # -----------------------------
 # Development / utilities
 # -----------------------------
+
+pytrends

@@ -17,3 +17,8 @@ llm = ChatGoogleGenerativeAI(
 )
 
 llm_tools = llm.bind_tools([content_length_tool, word_count_tool])
+
+
+
+def gemini(node_name: str, status: str):
+    """Gửi thông báo trạng thái Node lên Telegram."""

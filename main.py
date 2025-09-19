@@ -1,6 +1,6 @@
 import asyncio
 from services.notion_service import NotionService
-from nodes2.manager import run_blog_workflow
+from nodes.manager import run_blog_workflow
 
 if __name__ == "__main__":
     notion_client = NotionService()

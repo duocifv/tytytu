@@ -20,6 +20,7 @@ class MessageHandler:
     async def handle_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Xử lý lệnh /start từ người dùng."""
         user = update.effective_user
+        chat_id = update.effective_chat.id   # 👉 Đây là chat_id
         welcome_message = (
             f"👋 Xin chào {user.first_name}!\n\n"
             "🤖 Tôi là chatbot hỗ trợ của bạn. Tôi có thể giúp bạn:\n"
@@ -28,6 +29,7 @@ class MessageHandler:
             "• Hỗ trợ kỹ thuật\n\n"
             "Gửi tin nhắn bất kỳ để bắt đầu!"
         )
+        logger.info(f"📌 Chat ID của @{user.username} là {chat_id}")
         await update.message.reply_text(welcome_message)
         
     async def handle_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

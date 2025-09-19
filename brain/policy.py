@@ -1,20 +1,30 @@
+# brain/policy.py
+from datetime import date
+
 class PolicyEngine:
     def __init__(self):
-        self.daily_max_nodes = 3
-        self.retry_limit = 2
-        self.node_run_count = {}
-        self.node_retry_count = {}
+        # Giới hạn đơn giản theo node (có thể nâng cấp lưu DB)
+        self.daily_counts = {}           # { node_name: count_today }
+        self.max_per_day = 3             # mỗi node tối đa chạy 3 lần/ngày
+        self.max_retry = 2               # tối đa retry cho mỗi node
 
-    def can_run(self, node_name):
-        if self.node_run_count.get(node_name, 0) >= self.daily_max_nodes:
-            return False
+        # optional: track date so counts reset mỗi ngày
+        self._last_day = date.today()
+
+    def _maybe_reset(self):
+        today = date.today()
+        if today != self._last_day:
+            self.daily_counts = {}
+            self._last_day = today
+
+    def can_run(self, node_name: str) -> bool:
+        self._maybe_reset()
+        return self.daily_counts.get(node_name, 0) < self.max_per_day
+
+    def register_run(self, node_name: str):
+        self._maybe_reset()
+        self.daily_counts[node_name] = self.daily_counts.get(node_name, 0) + 1
+
+    def can_retry(self, node_name: str) -> bool:
+        # You can add extra logic here, for now always allow
         return True
-
-    def register_run(self, node_name):
-        self.node_run_count[node_name] = self.node_run_count.get(node_name, 0) + 1
-
-    def can_retry(self, node_name):
-        return self.node_retry_count.get(node_name, 0) < self.retry_limit
-
-    def register_retry(self, node_name):
-        self.node_retry_count[node_name] = self.node_retry_count.get(node_name, 0) + 1

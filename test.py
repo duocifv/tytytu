@@ -7,7 +7,8 @@ if __name__ == "__main__":
     init_state: State = {
         "status": {},
         "results": {"messages": [HumanMessage(content="Bắt đầu workflow")]},
-        "retries": {}
+        "retries": {},
+        "topic": "Thiền và tâm lý học hiện đại"
     }
 
     memory = MemorySaver()

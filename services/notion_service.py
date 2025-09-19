@@ -19,10 +19,10 @@ HEADERS = {
 class NotionService:
     def __init__(self):
         self.task_ids = {}
-        self.task_blog: Dict[str, Dict] = {}  # lưu dữ liệu các task
-        self.client = httpx.AsyncClient(timeout=20)
+        self.task_blogs: Dict[str, Dict] = {} 
+        self.client = httpx.Client(timeout=120)
 
-    async def create_task(self, task_name: str, start=None, deadline=None):
+    def create_task(self, task_name: str, start=None, deadline=None):
     
         start = start or datetime.today().isoformat()
         deadline = deadline or datetime.today().isoformat()
@@ -33,11 +33,10 @@ class NotionService:
                 "Name": {"title": [{"text": {"content": task_name}}]},
                 "Start": {"date": {"start": start}},
                 "Deadline": {"date": {"start": deadline}},
-                "Status": {"status": {"name": "Bắt đầu"}},
             }
         }
 
-        res = await self.client.post(
+        res = self.client.post(
             NOTION_API_URL,
             headers={**HEADERS, "Notion-Version": "2025-09-03"},
             json=data
@@ -51,17 +50,17 @@ class NotionService:
             print("⚠️ Lỗi tạo task:", res.text)
             return None
 
-    async def update_task(self, task_name: str, properties: dict):
-        page_id = self.task_ids.get(task_name)
+    def update_task(self, task_name: str, properties: dict):
 
         if task_name not in self.task_ids:
-            await self.create_task(task_name)
+             self.create_task(task_name)
 
+        page_id = self.task_ids.get(task_name)
         if not page_id:
             print(f"⚠️ Không tìm thấy blog '{task_name}' để cập nhật")
             return
         
-        res = await self.client.patch(
+        res = self.client.patch(
             f"{NOTION_API_URL}/{page_id}",
             headers={**HEADERS, "Notion-Version": "2025-09-03"}, 
             json={"properties": properties}
@@ -71,13 +70,13 @@ class NotionService:
         else:
             print("⚠️ Lỗi update task:", res.text)
 
-    async def finalize_task(self, name: str):
-        await self.update_task(name, {"KPI": {"number": 100}})
+    def finalize_task(self, name: str):
+        self.update_task(name, {"KPI": {"number": 100}})
         print(f"🏁 Hoàn tất task '{name}'")
 
-    async def get_relation_mapping(self, database_id):
+    def get_relation_mapping(self, database_id):
         url = f"https://api.notion.com/v1/databases/{database_id}/query"
-        res = await self.client.post(
+        res = self.client.post(
                 url,
                 headers={**HEADERS, "Notion-Version": "2022-06-28"},
             )
@@ -93,43 +92,35 @@ class NotionService:
                 mapping[name] = page_id
         return mapping
 
-    async def create_blog(self, task_name: str, topic="", audience="", guideline="", keywords="", outline="", facts="", content="", images="", video="", status="Đang làm"):
+    def create_blog(self, task_name: str):
         data = {
             "parent": {"type": "data_source_id", "data_source_id": SOURCE_ID_BLOG},
             "properties": {
                 "Name": {"title": [{"text": {"content": task_name}}]},
-                "Topic": {"rich_text": [{"text": {"content": topic}}]},
-                "Audience": {"rich_text": [{"text": {"content": audience}}]},
-                "Guideline": {"rich_text": [{"text": {"content": guideline}}]},
-                "Keywords": {"rich_text": [{"text": {"content": keywords}}]},
-                "Outline": {"rich_text": [{"text": {"content": outline}}]},
-                "Facts": {"rich_text": [{"text": {"content": facts}}]},
-                "Content": {"rich_text": [{"text": {"content": content}}]},
-                "Images": {"rich_text": [{"text": {"content": images}}]},
-                "Video": {"rich_text": [{"text": {"content": video}}]},
-                "Status": {"select": {"name": status}},
             }
         }
-        res = await self.client.post(
+        res = self.client.post(
             NOTION_API_URL, 
             headers={**HEADERS, "Notion-Version": "2025-09-03"}, 
             json=data)
             
         if res.status_code in [200, 201]:
             page_id = res.json()["id"]
-            self.task_blog["id"] = page_id
+            self.task_blogs[task_name] = page_id
             print(f"📌 Tạo blog '{task_name}' trên Notion")
         else:
             print("⚠️ Lỗi tạo blog:", res.text)
 
-    async def update_blog(self, task_name: str, properties: dict):
-        blogId = self.task_blog.get(task_name)
-
-        if not blogId:
-            print(f"⚠️ Không tìm thấy blog '{task_name}' để cập nhật")
-            return
+    def update_blog(self, task_name: str, properties: dict):
+        if task_name not in self.task_blogs:
+             self.create_blog(task_name)
+             
+        # if not blogId:
+        #     print(f"⚠️ Không tìm thấy blog '{task_name}' để cập nhật")
+        #     return
         
-        res = await self.client.patch(
+        blogId = self.task_blogs.get(task_name)
+        res = self.client.patch(
             f"{NOTION_API_URL}/{blogId}",
             headers={**HEADERS, "Notion-Version": "2025-09-03"}, 
             json={"properties": properties}
@@ -140,7 +131,7 @@ class NotionService:
         else:
             print("⚠️ Lỗi update task:", res.text)
     
-    async def get_blog(self, name: str):
+    def get_blog(self, name: str):
         """
         Lấy thông tin blog theo Name từ database.
         """
@@ -151,7 +142,7 @@ class NotionService:
                 "title": {"equals": name}
             }
         }
-        res = await self.client.post(url, headers=HEADERS, json=payload)
+        res = self.client.post(url, headers=HEADERS, json=payload)
         if res.status_code != 200:
             print("⚠️ Lỗi lấy blog:", res.text)
             return None
