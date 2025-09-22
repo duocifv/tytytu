@@ -42,3 +42,4 @@ matplotlib
 # -----------------------------
 
 pytrends
+langchain-openai

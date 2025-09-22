@@ -9,7 +9,7 @@ if not api_key:
     raise ValueError("Thiếu GOOGLE_API_KEY")
 
 llm = init_chat_model(
-    model="gemini-2.5-flash",
+    model="gemini-1.5-flash",
     model_provider="google_genai",
     api_key=api_key,
 )

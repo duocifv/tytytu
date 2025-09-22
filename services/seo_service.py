@@ -9,28 +9,24 @@ load_dotenv()
 class SEOContentPipeline:
     def __init__(self):
         """Khởi tạo pipeline với SerpAPI key cố định từ .env."""
-        # ⚠️ Có thể hardcode key nếu bạn muốn
-        # self.serpapi_key = "YOUR_SERPAPI_KEY_HERE"
         self.serpapi_key = os.getenv("SERPAPI_KEY")
 
         if not self.serpapi_key:
             raise ValueError("❌ SERPAPI_KEY chưa được cấu hình!")
-
+        
     def fetch_keywords(self, keyword: str, geo: str = "VN"):
         """Lấy keyword liên quan từ Google Trends."""
-        pytrends = TrendReq(hl="en-US", tz=360)
-        pytrends.build_payload([keyword], timeframe="today 12-m", geo=geo)
-
+        pytrends = TrendReq(hl="vi-VN", tz=420)
+        pytrends.build_payload([keyword], timeframe="all", geo=geo)
         related = pytrends.related_queries()
-        seo_keywords = []
 
+        seo_keywords = []
         if keyword in related:
             top_df = related[keyword].get("top")
             if top_df is not None:
                 seo_keywords = top_df.head(5)["query"].tolist()
 
         return seo_keywords
-
 
     def fetch_competitor_titles(self, keyword: str, location: str = "Vietnam"):
         """Lấy tiêu đề đối thủ từ Google SERP qua SerpAPI."""

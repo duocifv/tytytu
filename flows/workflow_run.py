@@ -1,29 +1,33 @@
 import uuid
 import time
 import threading
-from fastapi import FastAPI
+import logging
+
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage
 from brain.nodes import build_graph
-import uvicorn
-from contextlib import asynccontextmanager
 from brain.types import State
 
-# Biến điều khiển
+logger = logging.getLogger("workflow")
+
 running = False
 graph = None
 
 
-def setup():
+def setup_graph():
     """Khởi tạo workflow"""
     memory = MemorySaver()
     workflow = build_graph()
-    return workflow.compile(checkpointer=memory)
+    compiled = workflow.compile(checkpointer=memory)
+    return compiled
 
 
-def loop():
-    """Loop workflow khi bật"""
+def loop(thread_name: str = "telegram-thread"):
+    """Loop workflow"""
     global running, graph
+    if not graph:
+        graph = setup_graph()
+
     while running:
         thread_id = str(uuid.uuid4())
         config = {"configurable": {"thread_id": thread_id}}
@@ -50,9 +54,9 @@ def loop():
 
         # 1. Chạy workflow
         state1 = graph.invoke(init_state, config=config)
-        print("Kết quả workflow:")
+        logger.info("Kết quả workflow:")
         for msg in state1["messages"]:
-            print("-", msg.content)
+            logger.info("-", msg.content)
 
         # 2. Resume trước publish
         history = list(graph.get_state_history(config))
@@ -77,46 +81,16 @@ def loop():
                     }
                 },
             )
-            print("\nKết quả resume trước publish:")
+            logger.info("Kết quả resume trước publish:")
             for msg in resumed_state["messages"]:
-                print("-", msg.content)
+                logger.info("-", msg.content)
 
-        time.sleep(5)  # giống Arduino delay
+        time.sleep(999999)  # delay cực dài
+        
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global graph
-    # chạy khi app khởi động
-    graph = setup()
-    yield
-    # cleanup khi app tắt (nếu cần)
-
-
-app = FastAPI(lifespan=lifespan)
-
-
-@app.post("/start")
-def start_loop():
+def start_workflow():
+    """Khởi chạy workflow trong thread nếu chưa chạy"""
     global running
     if not running:
         running = True
         threading.Thread(target=loop, daemon=True).start()
-        return {"status": "started"}
-    return {"status": "already running"}
-
-
-@app.post("/stop")
-def stop_loop():
-    global running
-    running = False
-    return {"status": "stopped"}
-
-
-@app.get("/status")
-def get_status():
-    return {"running": running}
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)

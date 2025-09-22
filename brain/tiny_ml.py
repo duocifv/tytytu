@@ -6,12 +6,12 @@ from sklearn.tree import DecisionTreeClassifier
 class TinyML:
     def __init__(self):
         # Node mapping
-        self.node_list = ["keyword", "title","content","image","seo","publish"]
+        self.node_list = ["keyword", "research", "insight", "idea", "title", "content", "publish"]
 
         # Sample training data
         train_data = [
-            ("Bắt đầu workflow", ["keyword", "title","content","image","seo","publish"]),
-            ("Workflow đầy đủ", ["keyword", "title","content","image","seo","publish"]),
+            ("Bắt đầu workflow", ["keyword", "research", "insight", "idea", "title", "content", "publish"]),
+            ("Workflow đầy đủ", ["keyword", "research", "insight", "idea", "title", "content", "publish"]),
             ("Chỉ tiêu đề và nội dung", ["title","content"]),
             ("Chỉ SEO và xuất bản", ["seo","publish"])
         ]

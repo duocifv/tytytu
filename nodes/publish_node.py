@@ -1,14 +1,22 @@
+# nodes/publish_node.py
 from langchain_core.messages import HumanMessage
+from services.facebook_service import FacebookPipeline
+
 
 def publish_node(state):
-    title = state["status"].get("node_data", {}).get("title", {}).get("title", "")
-    images = state["status"].get("node_data", {}).get("image", {}).get("image_urls", [])
-    meta = state["status"].get("node_data", {}).get("seo", {}).get("meta", {})
+    try:
+        pipeline = FacebookPipeline()
+        result = pipeline.run(state)   # để pipeline lo format + publish
+        published = result.get("published", False)
+        msg_text = result.get("message", "❌ Unknown error")
+    except Exception as e:
+        published = False
+        msg_text = f"❌ Error publishing to Facebook: {e}"
 
-    msg = HumanMessage(content=f"Published blog: {title} | Images: {images} | SEO meta: {meta}")
+    msg = HumanMessage(content=msg_text)
 
     return {
         "status": "done",
         "messages": [msg],
-        "published": True
+        "published": published
     }

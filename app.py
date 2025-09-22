@@ -8,6 +8,8 @@ from telegram.ext import Application, MessageHandler as TGMessageHandler, filter
 from handlers.message_handler import MessageHandler as MessageHandlerClass
 from schedulers.scheduler import init_scheduler
 
+
+
 # -----------------------------
 # Logging & env
 # -----------------------------
@@ -34,47 +36,53 @@ bot_app.add_handler(CommandHandler("help", handler.handle_help))
 scheduler = None
 
 # -----------------------------
-# Lifespan
+# Lifespan (khởi tạo bot + graph)
 # -----------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global scheduler
+    global scheduler, graph
     logger.info("🚀 Startup...")
 
-    try:
-        await bot_app.initialize()
-        await bot_app.start()
-        logger.info("🟢 Telegram bot started")
+    # Telegram bot
+    await bot_app.initialize()
+    await bot_app.start()
+    logger.info("🟢 Telegram bot started")
 
-        if WEBHOOK_URL:
-            await bot_app.bot.set_webhook(WEBHOOK_URL)
-            logger.info("🌍 Webhook set: %s", WEBHOOK_URL)
+    if WEBHOOK_URL:
+        await bot_app.bot.set_webhook(WEBHOOK_URL)
+        logger.info("🌍 Webhook set: %s", WEBHOOK_URL)
 
-        scheduler = init_scheduler()
-        yield
+    scheduler = init_scheduler()
+    logger.info("🧠 Graph workflow initialized")
 
-    finally:
-        logger.info("🛑 Shutdown...")
-        if scheduler and scheduler.running:
-            scheduler.shutdown(wait=False)
-            logger.info("⏰ Scheduler stopped")
-        await bot_app.stop()
-        await bot_app.shutdown()
-        logger.info("🔴 Telegram bot stopped")
+    yield
 
+    # Cleanup
+    logger.info("🛑 Shutdown...")
+    if scheduler and scheduler.running:
+        scheduler.shutdown(wait=False)
+        logger.info("⏰ Scheduler stopped")
+    await bot_app.stop()
+    await bot_app.shutdown()
+    logger.info("🔴 Telegram bot stopped")
+
+
+# -----------------------------
+# FastAPI app
+# -----------------------------
 app = FastAPI(lifespan=lifespan)
 
-# -----------------------------
-# Endpoints
-# -----------------------------
+
 @app.get("/health")
 @app.head("/health")
 async def health():
     return {"status": "ok"}
 
+
 @app.get("/")
 async def root():
-    return {"service": "telegram-bot", "status": "running"}
+    return {"service": "telegram-bot+workflow", "status": "running"}
+
 
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
@@ -86,6 +94,7 @@ async def telegram_webhook(request: Request):
     update = Update.de_json(data, Bot(BOT_TOKEN))
     await bot_app.update_queue.put(update)
     return {"ok": True}
+
 
 if __name__ == "__main__":
     import uvicorn

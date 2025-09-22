@@ -2,7 +2,7 @@ from services.seo_service import SEOContentPipeline
 
 if __name__ == "__main__":
     pipeline = SEOContentPipeline()
-    result = pipeline.run("du lịch Đà Nẵng")
+    result = pipeline.run("Sức khỏe")
 
     print("\n📌 Final Output:")
     print("🔑 Seed Keyword:", result["seed_keyword"])

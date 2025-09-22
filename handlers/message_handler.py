@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, Optional
 from telegram import Update
 from telegram.ext import ContextTypes
-from flows import process_message_flow
+from flows.flows import process_message
 
 # Cấu hình logging
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ class MessageHandler:
             
             # Xử lý tin nhắn thông qua luồng xử lý
             logger.debug("⏳ Đang xử lý tin nhắn thông qua luồng xử lý chính...")
-            response = await process_message_flow(
+            response = await process_message(
                 message=message,
                 user_id=str(user.id),  # Convert to string to match expected type
                 session_id=str(user.id)  # Using user ID as session ID for tracking
