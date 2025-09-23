@@ -1,14 +1,11 @@
-# services/telegram_service.py
-import os
 import asyncio
-from dotenv import load_dotenv
+import os
 from telegram import Bot
-
-load_dotenv() 
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 bot = Bot(token=BOT_TOKEN)
+
 
 async def send_telegram(message: str):
     """Gửi tin nhắn tới Telegram (async)."""
@@ -16,6 +13,22 @@ async def send_telegram(message: str):
         raise ValueError("⚠️ TELEGRAM_TOKEN hoặc CHAT_ID chưa được cấu hình")
     await bot.send_message(chat_id=CHAT_ID, text=message)
 
-# Nếu muốn gọi trong sync context:
-def send_telegram_sync(message: str):
-    asyncio.run(send_telegram(message))
+
+def send_telegram_safe(message: str):
+    """
+    Gửi tin nhắn Telegram an toàn cho cả sync & async context.
+    - Nếu đang trong loop đang chạy → dùng run_coroutine_threadsafe
+    - Nếu không có loop → dùng asyncio.run
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # Trường hợp gọi trong thread / async context
+        future = asyncio.run_coroutine_threadsafe(send_telegram(message), loop)
+        return future.result()
+    else:
+        # Trường hợp sync bình thường
+        return asyncio.run(send_telegram(message))

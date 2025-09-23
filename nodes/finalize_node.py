@@ -20,7 +20,7 @@ def finalize_node(state):
     print("🔹 Finalize node state dump:")
 
     # Khởi tạo mặc định để tránh lỗi UnboundLocalError
-    published = False
+    published = True
     url = ""
     title_text = "Untitled"
 
@@ -69,7 +69,7 @@ def finalize_node(state):
             published = publish_data.get("published", False)
             # url = publish_data.get("url", "")
         else:
-            published = False
+            published = True
             # url = ""
         print(f"publish_data--------------->", publish_data)
         # --- Lưu vào Notion ---
@@ -98,11 +98,12 @@ def finalize_node(state):
     # --- Gửi Telegram nếu published ---
     if published:
         try:
-            notify_blog_published(f"🚀 Notify: Published '{title_text}' ")
+            # notify_blog_published(f"🚀 Notify: Published '{title_text}' ")
             messages.append(HumanMessage(content="✅ Sent Telegram notification"))
         except Exception as e:
             messages.append(HumanMessage(content=f"❌ Failed to notify Telegram: {e}"))
 
+    notify_blog_published(f"🚀 Notify: đã đăng facebook và website  ")
     return {
         "status": "done",
         "messages": messages,

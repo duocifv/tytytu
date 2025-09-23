@@ -13,6 +13,7 @@ logger = logging.getLogger("workflow")
 running = False
 graph = None
 
+lock = threading.Lock()
 
 def setup_graph():
     """Khởi tạo workflow"""
@@ -58,31 +59,31 @@ def loop(thread_name: str = "telegram-thread"):
         logger.info("- %s", msg.content)
 
     # 2. Resume trước publish
-    history = list(graph.get_state_history(config))
-    cp = next(
-        (
-            h for h in reversed(history)
-            if not any(
-                "publish" in (m.content if hasattr(m, "content") else str(m)).lower()
-                for m in h.values.get("messages", [])
-            )
-        ),
-        None
-    )
+    # history = list(graph.get_state_history(config))
+    # cp = next(
+    #     (
+    #         h for h in reversed(history)
+    #         if not any(
+    #             "publish" in (m.content if hasattr(m, "content") else str(m)).lower()
+    #             for m in h.values.get("messages", [])
+    #         )
+    #     ),
+    #     None
+    # )
 
-    if cp:
-        resumed_state = graph.invoke(
-            None,
-            config={
-                "configurable": {
-                    "thread_id": thread_id,
-                    "checkpoint_id": cp.config["configurable"]["checkpoint_id"]
-                }
-            },
-        )
-        logger.info("Kết quả resume trước publish:")
-        for msg in resumed_state["messages"]:
-            logger.info("- %s", msg.content)
+    # if cp:
+    #     resumed_state = graph.invoke(
+    #         None,
+    #         config={
+    #             "configurable": {
+    #                 "thread_id": thread_id,
+    #                 "checkpoint_id": cp.config["configurable"]["checkpoint_id"]
+    #             }
+    #         },
+    #     )
+    #     logger.info("Kết quả resume trước publish:")
+    #     for msg in resumed_state["messages"]:
+    #         logger.info("- %s", msg.content)
 
     # ✅ tự tắt sau khi chạy xong
     running = False
@@ -92,8 +93,11 @@ def loop(thread_name: str = "telegram-thread"):
 
 
 def start_workflow():
-    """Khởi chạy workflow trong thread nếu chưa chạy"""
     global running
-    if not running:
-        running = True
-        threading.Thread(target=loop, daemon=True).start()
+    with lock:
+        if not running:
+            running = True
+            logger.info("=== BẮT ĐẦU workflow thread ===")
+            threading.Thread(target=loop, daemon=True).start()
+        else:
+            logger.info("⚠️ Workflow đã chạy, bỏ qua request mới")

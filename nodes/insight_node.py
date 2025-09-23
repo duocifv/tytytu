@@ -4,7 +4,6 @@ def insight_node(state):
     """
     ✅ Node phân tích mối quan tâm người dùng, tạo insights.
     """
-    print(f"interest_node", state)
     msg = HumanMessage(content=f"interest_node blog:")
     outputs = {
         "interest": "Du lịch trải nghiệm",

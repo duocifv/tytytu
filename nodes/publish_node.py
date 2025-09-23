@@ -10,6 +10,17 @@ def publish_node(state):
     Publish bài viết đồng thời lên Facebook và Webhook.
     Trả về published = True nếu ít nhất một kênh thành công.
     """
+
+    # 🔒 Chặn publish nếu đã chạy rồi
+    if state["outputs"].get("publish", {}).get("done"):
+        msg = HumanMessage(content="⏭️ Bỏ qua publish vì đã đăng trước đó")
+        return {
+            "status": "skipped",
+            "messages": [msg],
+            "published": True,
+            "details": state["outputs"]["publish"]["details"],
+        }
+
     msg_text = ""
     fb_success = False
     web_success = False
@@ -59,8 +70,13 @@ def publish_node(state):
         "status": "done",
         "messages": [msg],
         "published": published,
-        "details": {
-            "facebook": fb_success,
-            "webhook": web_success
+        "outputs": {
+            "publish": {
+                "done": True,
+                "details": {
+                    "facebook": fb_success,
+                    "webhook": web_success
+                }
+            }
         }
     }
