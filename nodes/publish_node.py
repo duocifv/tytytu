@@ -1,36 +1,66 @@
 # nodes/publish_node.py
 import requests
+import traceback
 from langchain_core.messages import HumanMessage
 from services.facebook_service import FacebookPipeline
 
 
 def publish_node(state):
+    """
+    Publish bài viết đồng thời lên Facebook và Webhook.
+    Trả về published = True nếu ít nhất một kênh thành công.
+    """
+    msg_text = ""
+    fb_success = False
+    web_success = False
+
+    # -------------------------------
+    # 1. Đăng bài Facebook
+    # -------------------------------
     try:
         pipeline = FacebookPipeline()
-        result = pipeline.run(state)   # để pipeline lo format + publish
-        published = result.get("published", False)
-        msg_text = result.get("message", "❌ Unknown error")
+        fb_result = pipeline.run(state) or {}
+        print("Facebook publish result:", fb_result)
 
-        # Nếu publish thành công thì trigger webhook
-        if published:
-            try:
-                webhook_url = "https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/7b2f2148-293a-4589-b22b-e7062700ceeb"
-                resp = requests.post(webhook_url, data="")  # tương đương curl -d ""
-                if resp.status_code == 200:
-                    msg_text += "\n✅ Cloudflare Pages deploy triggered"
-                else:
-                    msg_text += f"\n⚠️ Deploy hook failed: {resp.status_code} {resp.text}"
-            except Exception as e:
-                msg_text += f"\n⚠️ Error calling deploy hook: {e}"
-
+        fb_success = fb_result.get("published", False)
+        msg_text += f"Facebook: {fb_result.get('message', '❌ Unknown error')}"
     except Exception as e:
-        published = False
-        msg_text = f"❌ Error publishing to Facebook: {e}"
+        fb_success = False
+        msg_text += f"\nFacebook error: {e}"
+        traceback.print_exc()
+
+    # -------------------------------
+    # 2. Gọi Webhook Cloudflare
+    # -------------------------------
+    try:
+        webhook_url = "https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/7b2f2148-293a-4589-b22b-e7062700ceeb"
+        resp = requests.post(webhook_url, json={})
+        print("Webhook response:", resp.status_code, resp.text)
+
+        if resp.status_code == 200:
+            web_success = True
+            msg_text += "\n✅ Web deployed successfully"
+        else:
+            web_success = False
+            msg_text += f"\n⚠️ Web deploy failed: {resp.status_code} {resp.text}"
+    except Exception as e:
+        web_success = False
+        msg_text += f"\nWebhook error: {e}"
+        traceback.print_exc()
+
+    # -------------------------------
+    # 3. Trả về published = True nếu ít nhất một kênh thành công
+    # -------------------------------
+    published = fb_success or web_success
 
     msg = HumanMessage(content=msg_text)
 
     return {
         "status": "done",
         "messages": [msg],
-        "published": published
+        "published": published,
+        "details": {
+            "facebook": fb_success,
+            "webhook": web_success
+        }
     }

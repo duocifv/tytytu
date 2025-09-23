@@ -22,7 +22,7 @@ class FacebookPipeline:
         if not self.page_id or not self.access_token:
             raise ValueError("❌ FB_PAGE_ID hoặc FB_PAGE_ACCESS_TOKEN chưa được cấu hình!")
 
-        self.base_url = f"https://graph.facebook.com/{self.page_id}"
+        self.base_url = f"https://graph.facebook.com/v23.0/{self.page_id}"
 
     def post_message(self, message: str, link: str = None) -> dict:
         """Đăng bài lên Page. Nếu muốn gắn link thì truyền `link`."""
@@ -33,6 +33,7 @@ class FacebookPipeline:
         url = f"{self.base_url}/feed"
         try:
             res = requests.post(url, data=data)
+            print("FB POST response:", res.status_code, res.text)
             res.raise_for_status()
             return res.json()
         except requests.HTTPError as e:
@@ -86,13 +87,15 @@ class FacebookPipeline:
         # --- Đăng lên Facebook ---
         try:
             result = self.post_message(fb_content)  # 🔥 sửa lại chỗ này
-            published = "id" in result
+            print("FB result:", result)   # 👈 thêm log
+            status_ok = isinstance(result, dict) and "id" in result
+            published = status_ok
             msg_text = f"✅ Published to Facebook: {title_text}" if published else f"❌ Failed: {result}"
         except Exception as e:
             published = False
             result = None
             msg_text = f"❌ Error publishing to Facebook: {e}"
-
+        print(msg_text)
         return {
             "published": published,
             "result": result,

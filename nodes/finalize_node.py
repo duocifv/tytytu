@@ -30,66 +30,54 @@ def finalize_node(state):
 
         # --- Convert từng trường thành text ---
         # Keyword
-        keyword_data = outputs.get("keyword", {})
-        if isinstance(keyword_data, dict):
-            keyword_text = list_to_text(keyword_data.get("keywords", []))
-        else:
-            keyword_text = list_to_text(keyword_data)
+        keyword_data = outputs.get("keyword", [])
+        keyword_text = list_to_text(keyword_data)
 
         # Research
-        research_data = outputs.get("research", {})
-        if isinstance(research_data, dict):
-            research_text = list_to_text(research_data.get("insights", []))
-        else:
-            research_text = list_to_text(research_data)
+        research_data = outputs.get("research", [])
+        research_text = list_to_text(research_data)
 
         # Idea
-        idea_data = outputs.get("idea", {}).get("blog_posts", [])
-        if isinstance(idea_data, list):
-            idea_texts = []
-            for item in idea_data:
-                if isinstance(item, dict):
-                    idea_texts.append(list_to_text(item.get("itinerary", [])))
-                else:
-                    idea_texts.append(str(item))
-            idea_text = "\n".join(idea_texts)
-        else:
-            idea_text = "No blog ideas"
+        idea_data = outputs.get("idea", [])
+        idea_text = list_to_text(idea_data)
 
         # Insight
-        insight_data = outputs.get("insight", {}).get("audience", {})
-        if isinstance(insight_data, dict):
-            insight_text = list_to_text(insight_data.get("pain_points", []))
-        else:
-            insight_text = list_to_text(insight_data)
+        insight_data = outputs.get("insight", [])
+        insight_text = list_to_text(insight_data)
 
         # Title & Description
-        title_info = outputs.get("title", {})
-        if not isinstance(title_info, dict):
-            title_info = {}
-        title_text = str(title_info.get("text", "")) or "Untitled"
-        title_description = str(title_info.get("description", ""))
+        title_info = outputs.get("title", "")
+        if isinstance(title_info, dict):
+            title_text = str(title_info.get("text", "")) or "Untitled"
+            title_description = str(title_info.get("description", ""))
+        else:
+            title_text = str(title_info) or "Untitled"
+            title_description = ""
 
         # Content & Tags
-        content_info = outputs.get("content", {})
-        if not isinstance(content_info, dict):
-            content_info = {}
-        content_text = str(content_info.get("body", ""))
-        tags_text = list_to_text(content_info.get("tags", []))
+        content_info = outputs.get("content", "")
+        if isinstance(content_info, dict):
+            content_text = str(content_info.get("body", ""))
+            tags_text = list_to_text(content_info.get("tags", []))
+        else:
+            content_text = str(content_info)
+            tags_text = ""
 
         # Publish status
         publish_data = outputs.get("publish", {})
-        if not isinstance(publish_data, dict):
-            publish_data = {}
-        published = publish_data.get("published", False)
-        url = publish_data.get("url", "")
-
+        if isinstance(publish_data, dict):
+            published = publish_data.get("published", False)
+            # url = publish_data.get("url", "")
+        else:
+            published = False
+            # url = ""
+        print(f"publish_data--------------->", publish_data)
         # --- Lưu vào Notion ---
         create_blog_log(
             task_name=title_text,
             description=title_description,
             topic=topic,
-            audience=insight_data,
+            audience=insight_text,
             guideline=research_text,
             keywords=keyword_text,
             outline=idea_text,
@@ -110,7 +98,7 @@ def finalize_node(state):
     # --- Gửi Telegram nếu published ---
     if published:
         try:
-            notify_blog_published(f"🚀 Notify: Published '{title_text}' at {url}")
+            notify_blog_published(f"🚀 Notify: Published '{title_text}' ")
             messages.append(HumanMessage(content="✅ Sent Telegram notification"))
         except Exception as e:
             messages.append(HumanMessage(content=f"❌ Failed to notify Telegram: {e}"))

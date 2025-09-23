@@ -4,7 +4,7 @@ def title_node(state):
     print(f"title_node", state)
     msg = HumanMessage(content=f"title_node blog:")
     outputs = {
-        "text": "7 địa điểm check-in hot ở Đà Lạt 2025",
+        "text": "Top 7 địa điểm check-in hot ở Đà Lạt",
         "description": "Khám phá những địa điểm sống ảo được giới trẻ yêu thích nhất khi đến Đà Lạt."
     }
     return {
