@@ -37,15 +37,15 @@ class SEOContentPipeline:
             "api_key": self.serpapi_key,
         }
         res = requests.get("https://serpapi.com/search", params=params).json()
-        return [r["title"] for r in res.get("organic_results", [])[:5]]
+        return [r["title"] for r in res.get("organic_results", [])[:8]]
 
     def run(self, seed_keyword: str):
         """Pipeline đơn giản: Keyword → Competitors."""
-        seo_keywords = self.fetch_keywords(seed_keyword)
+        # seo_keywords = self.fetch_keywords(seed_keyword)
         competitor_titles = self.fetch_competitor_titles(seed_keyword)
 
         return {
             "seed_keyword": seed_keyword,
-            "seo_keywords": seo_keywords,
+            "seo_keywords": "seo_keywords",
             "competitor_titles": competitor_titles,
         }

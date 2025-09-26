@@ -1,12 +1,16 @@
-from services.seo_service import SEOContentPipeline
+from nodes.keyword_node import keyword_node   # ✅ import node bạn vừa viết
 
 if __name__ == "__main__":
-    pipeline = SEOContentPipeline()
-    result = pipeline.run("Sức khỏe")
+    # Input state giả lập
+    state = {
+        "topic": "Sức khỏe"
+    }
 
+    # Gọi node
+    result = keyword_node(state)
+
+    # In ra kết quả
     print("\n📌 Final Output:")
-    print("🔑 Seed Keyword:", result["seed_keyword"])
-    print("📊 SEO Keywords:", ", ".join(result["seo_keywords"]))
-    print("🏆 Competitor Titles:")
-    for i, title in enumerate(result["competitor_titles"], 1):
-        print(f"   {i}. {title}")
+    print("Status:", result["status"])
+    print("Messages:", [m.content for m in result["messages"]])
+    print("Outputs:", result["outputs"])

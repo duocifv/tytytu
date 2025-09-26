@@ -16,46 +16,65 @@ class KeywordOutput(BaseModel):
 
 def keyword_node(state):
     topic = state.get("topic", "Demo topic")
-    # # 2️⃣ Lấy dữ liệu SEO
-    # pipeline = SEOContentPipeline()
-    # seo_data = pipeline.run(topic)
-    # seo_keywords = seo_data.get("seo_keywords", [])
-    # competitors = seo_data.get("competitor_titles", [])
 
-    # # 3️⃣ Parser JSON
-    # parser = PydanticOutputParser(pydantic_object=KeywordOutput)
+    # 2️⃣ Lấy dữ liệu SEO
+    pipeline = SEOContentPipeline()
+    seo_data = pipeline.run("Sức khỏe")
+    print(seo_data)
+    seo_keywords = seo_data.get("seo_keywords", [])
+    competitors = seo_data.get("competitor_titles", [])
 
-    # # 4️⃣ Prompt template (ép format chuẩn)
-    # p1 = ChatPromptTemplate.from_messages([
-    #     ("system", "Bạn là Neil Patel, chuyên gia SEO. Phong cách trực tiếp, dữ liệu-driven."),
-    #     ("user",
-    #      "Viết 3 ý tưởng blog mới cho chủ đề: {topic}, "
-    #      "từ khóa: {seo_keywords}, tiêu đề đối thủ: {competitors}. "
-    #      "Ý tưởng ≤20 từ. Trả về JSON.\n{format_instructions}")
-    # ]).partial(format_instructions=parser.get_format_instructions())
+    # 3️⃣ Parser JSON
+    parser = PydanticOutputParser(pydantic_object=KeywordOutput)
 
-    # # 5️⃣ Chain
-    # chain = (
-    #     p1 | llm
-    #     | RunnableLambda(lambda x: safe_parse(parser, x.content))
-    # )
+    # 4️⃣ Prompt phân tích nhu cầu + vấn đề user
+    p_analysis = ChatPromptTemplate.from_messages([
+        ("system", "Bạn là chuyên gia SEO, nhiệm vụ là phân tích nhu cầu người dùng."),
+        ("user",
+         "Dựa vào 8 tiêu đề cạnh tranh sau đây:\n{competitors}\n\n"
+         "Hãy xác định:\n"
+         "- Các nhu cầu chính của người dùng\n"
+         "- Các mối quan tâm nổi bật\n"
+         "- Những vấn đề họ đang gặp phải\n"
+         "Sau đó chọn ra 3 ý tưởng nội dung blog (≤20 từ) "
+         "và 1 tiêu đề hấp dẫn, kèm meta description ngắn gọn.\n"
+         "Trả về JSON.\n{format_instructions}")
+    ]).partial(format_instructions=parser.get_format_instructions())
 
-    # # 6️⃣ Run chain
-    # result = chain.invoke({
-    #     "topic": topic,
-    #     "seo_keywords": ", ".join(seo_keywords) if seo_keywords else "Không có",
-    #     "competitors": ", ".join(competitors) if competitors else "Không có"
-    # })
+    # 5️⃣ Prompt Kinh Dịch diễn giải
+    p_i_ching = ChatPromptTemplate.from_messages([
+        ("system", "Bạn là bậc thầy Kinh Dịch, chuyên dùng quẻ để soi chiếu nhu cầu con người."),
+        ("user",
+         "Dựa vào nhu cầu & vấn đề đã phân tích từ tiêu đề đối thủ:\n{competitors}\n\n"
+         "Hãy diễn giải theo Kinh Dịch:\n"
+         "- Ý nghĩa sâu xa\n"
+         "- Lời khuyên định hướng\n"
+         "- Cách cân bằng sức khỏe, đời sống\n\n"
+         "Kết quả trả về JSON.\n{format_instructions}")
+    ]).partial(format_instructions=parser.get_format_instructions())
 
-    result =  {
-        "keywords": ["du lịch Đà Lạt", "ẩm thực Đà Lạt", "check-in cảnh đẹp"],
-        "intent": "Tìm hiểu trải nghiệm du lịch Đà Lạt"
-    }
-    msg = HumanMessage(content=f"Generated ideas & title for topic '{topic}'")
+    # 6️⃣ Chain
+    chain = (
+        p_analysis
+        | llm
+        | RunnableLambda(lambda x: safe_parse(parser, x.content))
+        | p_i_ching
+        | llm
+        | RunnableLambda(lambda x: safe_parse(parser, x.content))
+    )
+
+    # 7️⃣ Run chain
+    result = chain.invoke({
+        "topic": topic,
+        "seo_keywords": ", ".join(seo_keywords) if seo_keywords else "Không có",
+        "competitors": ", ".join(competitors) if competitors else "Không có"
+    })
+    print(result)
+    msg = HumanMessage(content=f"Generated ideas & I-Ching interpretation for topic '{topic}'")
     return {
         "status": "done",
         "messages": [msg],
-        "outputs": result   # ✅ dữ liệu của node luôn nằm ở đây
+        "outputs": result
     }
 
 
