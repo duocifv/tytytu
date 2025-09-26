@@ -10,20 +10,24 @@ def publish_node(state):
     Publish bài viết đồng thời lên Facebook và Webhook.
     Trả về published = True nếu ít nhất một kênh thành công.
     """
+    print(f"publish_node called with state:", state)
+
+    outputs = state.get("outputs", {})
+    publish_info = outputs.get("publish", {})
 
     # 🔒 Chặn publish nếu đã chạy rồi
-    if state["outputs"].get("publish", {}).get("done"):
+    if publish_info.get("done"):
         msg = HumanMessage(content="⏭️ Bỏ qua publish vì đã đăng trước đó")
         return {
             "status": "skipped",
             "messages": [msg],
             "published": True,
-            "details": state["outputs"]["publish"]["details"],
+            "outputs": publish_info,
         }
 
-    msg_text = ""
     fb_success = False
     web_success = False
+    msg_texts = []
 
     # -------------------------------
     # 1. Đăng bài Facebook
@@ -34,10 +38,11 @@ def publish_node(state):
         print("Facebook publish result:", fb_result)
 
         fb_success = fb_result.get("published", False)
-        msg_text += f"Facebook: {fb_result.get('message', '❌ Unknown error')}"
+        fb_message = fb_result.get("message", "✅ Facebook done" if fb_success else "❌ Facebook failed")
+        msg_texts.append(f"Facebook: {fb_message}")
     except Exception as e:
         fb_success = False
-        msg_text += f"\nFacebook error: {e}"
+        msg_texts.append(f"Facebook error: {e}")
         traceback.print_exc()
 
     # -------------------------------
@@ -50,21 +55,20 @@ def publish_node(state):
 
         if resp.status_code == 200:
             web_success = True
-            msg_text += "\n✅ Web deployed successfully"
+            msg_texts.append("✅ Web deployed successfully")
         else:
             web_success = False
-            msg_text += f"\n⚠️ Web deploy failed: {resp.status_code} {resp.text}"
+            msg_texts.append(f"⚠️ Web deploy failed: {resp.status_code} {resp.text}")
     except Exception as e:
         web_success = False
-        msg_text += f"\nWebhook error: {e}"
+        msg_texts.append(f"Webhook error: {e}")
         traceback.print_exc()
 
     # -------------------------------
     # 3. Trả về published = True nếu ít nhất một kênh thành công
     # -------------------------------
     published = fb_success or web_success
-
-    msg = HumanMessage(content=msg_text)
+    msg = HumanMessage(content="\n".join(msg_texts))
 
     return {
         "status": "done",

@@ -33,11 +33,10 @@ class FacebookPipeline:
         url = f"{self.base_url}/feed"
         try:
             res = requests.post(url, data=data)
-            print("FB POST response:", res.status_code, res.text)
             res.raise_for_status()
             return res.json()
-        except requests.HTTPError as e:
-            return {"error": str(e), "response": res.text}
+        except requests.RequestException as e:
+            return {"error": str(e), "response": getattr(res, "text", "")}
 
     def get_page_info(self) -> dict:
         """Lấy thông tin cơ bản của Page."""
@@ -47,8 +46,8 @@ class FacebookPipeline:
             res = requests.get(url, params=params)
             res.raise_for_status()
             return res.json()
-        except requests.HTTPError as e:
-            return {"error": str(e), "response": res.text}
+        except requests.RequestException as e:
+            return {"error": str(e), "response": getattr(res, "text", "")}
 
     def run(self, state: dict) -> dict:
         """
@@ -57,21 +56,28 @@ class FacebookPipeline:
         """
         outputs = state.get("outputs", {})
 
-        # --- Title & Description ---
-        title_info = outputs.get("title", {}) if isinstance(outputs.get("title", {}), dict) else {}
-        title_text = title_info.get("text", "Untitled")
-        title_description = title_info.get("description", "No description")
+       # --- Title & Description ---
+        title_info = outputs.get("title")
+        if title_info:
+            if hasattr(title_info, "text"):
+                title_text = title_info.text
+            if hasattr(title_info, "description"):
+                title_description = title_info.description
 
         # --- Content & Tags ---
-        content_info = outputs.get("content", {}) if isinstance(outputs.get("content", {}), dict) else {}
-        content_text = content_info.get("body", "No content")
-        tags_text = list_to_text(content_info.get("tags", []))
+        content_info = outputs.get("content")
+        if content_info:
+            if hasattr(content_info, "body"):
+                content_text = content_info.body
+            if hasattr(content_info, "tags"):
+                tags_text = list_to_text(content_info.tags)
+
 
         # --- Images & SEO ---
-        images_info = outputs.get("images", [])
+        images_info = outputs.get("images") or []
         images_text = list_to_text(images_info) if images_info else "No images"
 
-        seo_info = outputs.get("seo", {})
+        seo_info = outputs.get("seo") or {}
         seo_text = f"Title: {seo_info.get('title', '')}, Description: {seo_info.get('description', '')}" if seo_info else "No SEO meta"
 
         # --- Format nội dung đẹp ---
@@ -86,15 +92,21 @@ class FacebookPipeline:
 
         # --- Đăng lên Facebook ---
         try:
-            result = self.post_message(fb_content)  # 🔥 sửa lại chỗ này
-            print("FB result:", result)   # 👈 thêm log
-            status_ok = isinstance(result, dict) and "id" in result
-            published = status_ok
-            msg_text = f"✅ Published to Facebook: {title_text}" if published else f"❌ Failed: {result}"
+            result = self.post_message(fb_content)
+            if "error" in result:
+                published = False
+                msg_text = f"❌ Failed to publish: {result['error']}"
+            elif "id" in result:
+                published = True
+                msg_text = f"✅ Published to Facebook: {title_text}"
+            else:
+                published = False
+                msg_text = f"❌ Unknown response from Facebook: {result}"
         except Exception as e:
             published = False
-            result = None
-            msg_text = f"❌ Error publishing to Facebook: {e}"
+            result = {"error": str(e)}
+            msg_text = f"❌ Exception while publishing: {e}"
+
         print(msg_text)
         return {
             "published": published,

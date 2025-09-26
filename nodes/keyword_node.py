@@ -5,21 +5,36 @@ from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel
 from services.llm_service import llm
 from services.seo_service import SEOContentPipeline
+from typing import List
 
-
+# -----------------------------
 # 1️⃣ Định nghĩa model JSON chuẩn
+# -----------------------------
 class KeywordOutput(BaseModel):
-    ideas: list[str]
-    selected_title: str
-    meta_description: str
+    ideas: List[str]
+    keywords: List[str]
 
+# -----------------------------
+# Helper parse an toàn
+# -----------------------------
+def safe_parse(parser, text: str):
+    try:
+        return parser.parse(text)
+    except Exception as e:
+        return KeywordOutput(
+            ideas=["Fallback idea 1", "Fallback idea 2", "Fallback idea 3"],
+            keywords=["Fallback keyword"]
+        )
 
+# -----------------------------
+# Node keyword
+# -----------------------------
 def keyword_node(state):
     topic = state.get("topic", "Demo topic")
 
     # 2️⃣ Lấy dữ liệu SEO
     pipeline = SEOContentPipeline()
-    seo_data = pipeline.run("Sức khỏe")
+    seo_data = pipeline.run(topic)
     print(seo_data)
     seo_keywords = seo_data.get("seo_keywords", [])
     competitors = seo_data.get("competitor_titles", [])
@@ -37,7 +52,7 @@ def keyword_node(state):
          "- Các mối quan tâm nổi bật\n"
          "- Những vấn đề họ đang gặp phải\n"
          "Sau đó chọn ra 3 ý tưởng nội dung blog (≤20 từ) "
-         "và 1 tiêu đề hấp dẫn, kèm meta description ngắn gọn.\n"
+         "và các từ khóa SEO liên quan.\n"
          "Trả về JSON.\n{format_instructions}")
     ]).partial(format_instructions=parser.get_format_instructions())
 
@@ -66,25 +81,12 @@ def keyword_node(state):
     # 7️⃣ Run chain
     result = chain.invoke({
         "topic": topic,
-        "seo_keywords": ", ".join(seo_keywords) if seo_keywords else "Không có",
         "competitors": ", ".join(competitors) if competitors else "Không có"
     })
-    print(result)
+
     msg = HumanMessage(content=f"Generated ideas & I-Ching interpretation for topic '{topic}'")
     return {
         "status": "done",
         "messages": [msg],
         "outputs": result
     }
-
-
-# Helper: parse an toàn
-def safe_parse(parser, text: str):
-    try:
-        return parser.parse(text)
-    except Exception as e:
-        return KeywordOutput(
-            ideas=["Fallback idea 1", "Fallback idea 2", "Fallback idea 3"],
-            selected_title="Fallback Title",
-            meta_description=f"Lỗi parse JSON: {e}"
-        )

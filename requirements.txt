@@ -43,3 +43,6 @@ matplotlib
 
 pytrends
 langchain-openai
+groq
+beautifulsoup4
+lxml
