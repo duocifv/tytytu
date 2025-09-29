@@ -86,3 +86,79 @@ def create_blog_log(
     except Exception as e:
         print("⚠️ Lỗi create_blog_log:", e)
         return None
+
+
+def create_hexagram_log(
+    Date: str,
+    Effect: str = "",
+    Nhan: str = "",
+    Hexagram: str = "",
+    Thien: str = "",
+    Scores: str = "",
+    Dia: str = "",
+    Summary: str = "",
+    Flags: str = "",
+    KeyEvent: str = "",
+):
+    """
+    📌 Tạo mới một blog trong Notion (Kanban Blog Database).
+    """
+    try:
+        payload = {
+           "Effect": {
+                "rich_text": [
+                    {"text": {"content":  _safe_text(Effect)}}
+                ]
+            },
+            "Nhan": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Nhan)}}
+                ]
+            },
+            "Hexagram": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Hexagram)}}
+                ]
+            },
+            "Thien": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Thien)}}
+                ]
+            },
+            "Scores": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Scores)}}
+                ]
+            },
+            "Dia": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Dia)}}
+                ]
+            },
+            "Summary": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Summary)}}
+                ]
+            },
+            "Flags": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Flags)}}
+                ]
+            },
+            "KeyEvent": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(KeyEvent)}}
+                ]
+            },
+            
+        }
+
+        res = notion.update_hexagram(Date, payload)
+        print("✅ Blog log saved to Notion:", Date)
+        return res
+
+    except Exception as e:
+        print("⚠️ Lỗi create_blog_log:", e)
+        return None
+
+

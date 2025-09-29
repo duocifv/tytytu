@@ -19,6 +19,9 @@ from nodes.image_node import image_node
 from nodes.seo_node import seo_node
 from nodes.publish_node import publish_node
 from nodes.finalize_node import finalize_node
+from nodes.data_analysis_node import data_analysis_node
+from nodes.create_daily_node import create_daily_node
+from nodes.human_reference_node import human_reference_node
 
 # =========================
 # Khởi tạo Brain & Policy
@@ -30,6 +33,9 @@ policy = PolicyEngine()
 # Map node name -> function
 # =========================
 node_map = {
+    "data_analysis": data_analysis_node,
+    "create_daily": create_daily_node,
+    "human_reference": human_reference_node,
     "keyword": keyword_node,
     "research": research_node,
     "insight": insight_node,
@@ -39,6 +45,7 @@ node_map = {
     "image": image_node,
     "seo": seo_node,
     "publish": publish_node,
+   
 }
 
 # =========================
@@ -115,13 +122,18 @@ def runner_node(state: State) -> State:
         state["status"]["step"] = step + 1
 
         state["outputs"][node_name] = out.get("outputs", {})
-
         if "seo_score" in out or "meta" in out:
             state["status"].setdefault("node_data", {})
             state["status"]["node_data"].setdefault(node_name, {})
             for k in ("seo_score", "meta"):
                 if k in out:
                     state["status"]["node_data"][node_name][k] = out[k]
+
+        # ✅ nếu node có trả về record thì merge vào state
+        if "daily" in out:
+            state.setdefault("daily", {})  # duy nhất 1 record
+            rec = out["daily"]  # dict
+            state["daily"].update(rec)  # merge vào record duy nhất
 
         done_log(node_name)
         return state

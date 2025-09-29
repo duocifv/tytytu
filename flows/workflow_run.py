@@ -33,7 +33,7 @@ def loop(thread_name: str = "telegram-thread"):
     config = {"configurable": {"thread_id": thread_id}}
 
     init_state: State = {
-        "messages": [HumanMessage(content="Bắt đầu workflow")],
+        "messages": [HumanMessage(content="mở quẻ")],
         "outputs": {
             "keyword": [],
             "research": [],
@@ -49,7 +49,32 @@ def loop(thread_name: str = "telegram-thread"):
             "sequence": 0,
             "step": "init",
             "done_nodes": []
-        }
+        },
+        "daily": {
+                "thien": "",
+                "dia": "",
+                "nhan": "",
+                "key_event": "",
+                "node_id": "",
+                "timestamp": "",
+                "Thien": "",
+                "Dia": "",
+                "Nhan": "",
+                "KeyEvent": "",
+                "llm_summary": "",
+                "llm_key_event_effect": "",
+                "scores": {"H1":0,"H2":0,"H3":0,"H4":0,"H5":0,"H6":0},
+                "bits_h1_h6": [0,0,0,0,0,0],
+                "moving_flags": [False,False,False,False,False,False],
+                "base": {"bitstring":"", "id":0, "name":"", "bits":"", "relations":{}},
+                "transformed": {"bitstring":"", "id":0, "name":"", "bits":"", "relations":{}},
+                "health": "",
+                "finance": "",
+                "psychology": "",
+                "work": "",
+                "trend": "",
+                "note": ""
+            }
     }
 
     # 1. Chạy workflow

@@ -2,7 +2,10 @@
 import requests
 import os
 from dotenv import load_dotenv
-from nodes.finalize_node import list_to_text
+from services.list_to_text import list_to_text
+
+
+
 
 # Load biến môi trường từ .env
 load_dotenv()
