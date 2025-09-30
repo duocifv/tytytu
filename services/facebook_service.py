@@ -2,19 +2,15 @@
 import requests
 import os
 from dotenv import load_dotenv
-from services.list_to_text import list_to_text
-
-
-
 
 # Load biến môi trường từ .env
 load_dotenv()
-
 
 class FacebookPipeline:
     """
     Service tương tác với Facebook Page:
     - Đăng bài
+    - Đăng ảnh kèm caption
     - Lấy thông tin cơ bản
     """
 
@@ -41,6 +37,20 @@ class FacebookPipeline:
         except requests.RequestException as e:
             return {"error": str(e), "response": getattr(res, "text", "")}
 
+    def post_photo(self, image_path: str, caption: str = "") -> dict:
+        """Đăng ảnh lên Page kèm caption"""
+        url = f"{self.base_url}/photos"
+        files = {"source": open(image_path, "rb")}
+        data = {"caption": caption, "access_token": self.access_token}
+        try:
+            res = requests.post(url, files=files, data=data)
+            res.raise_for_status()
+            return res.json()
+        except requests.RequestException as e:
+            return {"error": str(e), "response": getattr(res, "text", "")}
+        finally:
+            files["source"].close()
+
     def get_page_info(self) -> dict:
         """Lấy thông tin cơ bản của Page."""
         url = self.base_url
@@ -52,56 +62,25 @@ class FacebookPipeline:
         except requests.RequestException as e:
             return {"error": str(e), "response": getattr(res, "text", "")}
 
-    def run(self, state: dict) -> dict:
+    def run(self, caption: str, short_post: str, image_path: str = None) -> dict:
         """
-        Nhận state (topic, outputs...) → format nội dung → đăng Facebook.
+        Nhận caption và short_post → format nội dung → đăng Facebook.
+        Nếu có image_path thì đăng ảnh kèm caption.
         Trả về dict với published, result, message.
         """
-        outputs = state.get("outputs", {})
-
-       # --- Title & Description ---
-        title_info = outputs.get("title")
-        if title_info:
-            if hasattr(title_info, "text"):
-                title_text = title_info.text
-            if hasattr(title_info, "description"):
-                title_description = title_info.description
-
-        # --- Content & Tags ---
-        content_info = outputs.get("content")
-        if content_info:
-            if hasattr(content_info, "body"):
-                content_text = content_info.body
-            if hasattr(content_info, "tags"):
-                tags_text = list_to_text(content_info.tags)
-
-
-        # --- Images & SEO ---
-        images_info = outputs.get("images") or []
-        images_text = list_to_text(images_info) if images_info else "No images"
-
-        seo_info = outputs.get("seo") or {}
-        seo_text = f"Title: {seo_info.get('title', '')}, Description: {seo_info.get('description', '')}" if seo_info else "No SEO meta"
-
-        # --- Format nội dung đẹp ---
-        fb_content = (
-            f"📰 {title_text}\n"
-            f"💬 {title_description}\n\n"
-            f"📄 {content_text[:300]}...\n\n"
-            f"🏷 Tags: {tags_text}\n"
-            f"🖼 Images: {images_text}\n"
-            f"🔍 SEO: {seo_text}"
-        )
-
-        # --- Đăng lên Facebook ---
+        fb_content = f"{caption}\n\n{short_post}"
         try:
-            result = self.post_message(fb_content)
+            if image_path:
+                result = self.post_photo(image_path, caption=fb_content)
+            else:
+                result = self.post_message(fb_content)
+
             if "error" in result:
                 published = False
                 msg_text = f"❌ Failed to publish: {result['error']}"
             elif "id" in result:
                 published = True
-                msg_text = f"✅ Published to Facebook: {title_text}"
+                msg_text = f"✅ Published to Facebook: {caption}"
             else:
                 published = False
                 msg_text = f"❌ Unknown response from Facebook: {result}"

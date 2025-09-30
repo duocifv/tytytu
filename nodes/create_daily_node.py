@@ -17,7 +17,6 @@ class DailyOutput(BaseModel):
 
 def create_daily_node(state):
     record = state.get("daily", {})
-    print(f"create_daily_node state--------->", state)
     svc = DailyHexagramService()
     result = svc.create_daily_node(
         record.get("thien"),

@@ -22,6 +22,7 @@ from nodes.finalize_node import finalize_node
 from nodes.data_analysis_node import data_analysis_node
 from nodes.create_daily_node import create_daily_node
 from nodes.human_reference_node import human_reference_node
+from nodes.content_and_facebook_node import content_and_facebook_node
 
 # =========================
 # Khởi tạo Brain & Policy
@@ -45,6 +46,7 @@ node_map = {
     "image": image_node,
     "seo": seo_node,
     "publish": publish_node,
+    "facebook": content_and_facebook_node,
    
 }
 

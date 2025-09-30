@@ -197,6 +197,32 @@ class NotionService:
         if results:
             return results[0]  # trả về page đầu tiên
         return None
+    
+    def get_hexagram(self):
+        """
+        Lấy thông tin blog theo Name từ database.
+        """
+        url = f"https://api.notion.com/v1/databases/27d529967a0c80ada672f49a08c15a21/query"
+        payload = {
+            "sorts": [
+                {
+                "property": "Date",
+                "direction": "descending"
+                }
+            ],
+            "page_size": 1
+        }
+
+        res = self.client.post(url, headers={
+            **HEADERS, "Notion-Version": "2022-06-28"}, json=payload)
+        if res.status_code != 200:
+            print("⚠️ Lỗi lấy blog:", res.text)
+            return None
+
+        results = res.json().get("results", [])
+        if results:
+            return results[0]  # trả về page đầu tiên
+        return None
 
     async def aclose(self):
         await self.client.aclose()

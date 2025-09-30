@@ -87,6 +87,9 @@ def create_blog_log(
         print("⚠️ Lỗi create_blog_log:", e)
         return None
 
+def get_hexagram_log():
+    res = notion.get_hexagram()
+    return res
 
 def create_hexagram_log(
     Date: str,
@@ -99,6 +102,12 @@ def create_hexagram_log(
     Summary: str = "",
     Flags: str = "",
     KeyEvent: str = "",
+    Health: str = "",
+    Finance: str = "",
+    Psychology: str = "",
+    Work: str = "",
+    Trend: str = "",
+    Note: str = "",
 ):
     """
     📌 Tạo mới một blog trong Notion (Kanban Blog Database).
@@ -150,7 +159,36 @@ def create_hexagram_log(
                     {"text": {"content": _safe_text(KeyEvent)}}
                 ]
             },
-            
+            "Health": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Health)}}
+                ]
+            },
+            "Finance": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Finance)}}
+                ]
+            },
+            "Psychology": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Psychology)}}
+                ]
+            },
+            "Work": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Work)}}
+                ]
+            },
+            "Trend": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Trend)}}
+                ]
+            },
+            "Note": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Note)}}
+                ]
+            },
         }
 
         res = notion.update_hexagram(Date, payload)

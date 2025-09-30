@@ -23,8 +23,6 @@ def human_reference_node(state):
 
     record = state.get("daily", {})
 
-    print("human_reference_node ----------------------------------------", state)
-
     # Nhúng dữ liệu đầu vào
     input_data = record.get("input", {})
     base_qua = record.get("base", {})
@@ -53,7 +51,7 @@ def human_reference_node(state):
 
     # Gọi AI (Groq GPT hoặc OpenAI GPT)
     raw_result = chat_groq(prompt)  # Hoặc openai_call(prompt)
-    print("📌 raw_result from AI:", raw_result)
+    print("📌 3 raw_result from AI:", raw_result)
 
     # Parse an toàn
     try:
@@ -71,6 +69,6 @@ def human_reference_node(state):
     msg = HumanMessage(content="human_reference_node completed")
     return {
         "status": "done",
-        "messages": [msg],
+        "messages": [msg],  
         "daily": result
     }
