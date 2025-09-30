@@ -51,7 +51,6 @@ def human_reference_node(state):
 
     # Gọi AI (Groq GPT hoặc OpenAI GPT)
     raw_result = chat_groq(prompt)  # Hoặc openai_call(prompt)
-    print("📌 3 raw_result from AI:", raw_result)
 
     # Parse an toàn
     try:
@@ -65,7 +64,7 @@ def human_reference_node(state):
             trend="Fallback",
             note="AI trả về không đúng JSON"
         )
-
+    print("📌 3 - human_reference_node - ok")
     msg = HumanMessage(content="human_reference_node completed")
     return {
         "status": "done",

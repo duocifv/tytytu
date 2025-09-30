@@ -74,6 +74,7 @@ def content_node(state):
     result = safe_parse(parser, raw_result)
 
     # Trả về dạng dict để downstream node dễ dùng
+    print("📌 4 - content_node - ok")
     msg = HumanMessage(content=f"content_node generated social post for topic ")
     return {
         "status": "done",

@@ -104,7 +104,6 @@ def data_analysis_node(state: dict) -> dict:
     # 4. Gọi Groq GPT
     try:
         raw_result = chat_groq(prompt)
-        print(f"raw_result------------------->" , raw_result)
         result = parser.parse(raw_result)
     except Exception as e:
         traceback.print_exc()
@@ -115,6 +114,7 @@ def data_analysis_node(state: dict) -> dict:
             key_event="Error",
         )
 
+    print("📌 1 - data_analysis_node - ok")
     msg = HumanMessage(content=f"data_analysis_node completed for '{topic}'")
     return {
         "status": "done",

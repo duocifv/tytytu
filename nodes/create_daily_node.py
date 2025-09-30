@@ -24,7 +24,7 @@ def create_daily_node(state):
         record.get("nhan"),
         record.get("key_event")
     )
-    print("📌 2/create_daily_node output:", result)
+    print("📌 2 create_daily_node ok:")
 
     msg = HumanMessage(content="create_daily_node tạo quẻ")
     return {
