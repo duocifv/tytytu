@@ -46,4 +46,4 @@ langchain-openai
 groq
 beautifulsoup4
 lxml
-genai
+moviepy
