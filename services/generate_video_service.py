@@ -127,7 +127,7 @@ def generate_frame(pil_image, text, author=None, size=512,
     lines = wrap_text(tmp_draw, text, font_quote, max_width)
 
     # measure total text block height
-    line_height = int(quote_font_size * 1.05)
+    line_height = int(quote_font_size * 1.25)
     total_text_h = len(lines) * line_height
 
     # --- Create blurred plaque behind text for readability ---
@@ -222,14 +222,17 @@ def generate_video(img_path, text, author=None,
     # center-crop or pad to square based on size to preserve aspect ratio of crop
     w0, h0 = pil.size
     # scale input so smaller side >= size
-    scale = max(size / min(w0,h0), 1.0)
+
+    width, height = size
+    scale = max(width / w0, height / h0)
     target_w = int(w0 * scale)
     target_h = int(h0 * scale)
     pil = pil.resize((target_w, target_h), Image.LANCZOS)
-    # then center-crop square of side >= size
-    left = (target_w - size) // 2
-    top = (target_h - size) // 2
-    pil = pil.crop((left, top, left + size, top + size))
+
+    left = (target_w - width) // 2
+    top = (target_h - height) // 2
+    pil = pil.crop((left, top, left + width, top + height))
+
 
     frames = []
     prev_frame = None
