@@ -9,6 +9,9 @@ from langchain.output_parsers import PydanticOutputParser
 from brain.notion_logger import get_hexagram_log
 from services.llm_service import llm
 from services.facebook_service import FacebookPipeline
+from services.poster_service import generate_poster
+from PIL import Image as PILImage
+from io import BytesIO
 
 # Thư mục lưu ảnh tạm
 TEMP_DIR = "generated_images"
@@ -20,7 +23,10 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 class ContentOutput(BaseModel):
     caption: str
     short_post: str
-    image_prompt: str  # ≤77 ký tự, dùng tạo ảnh
+    image_prompt: str
+    daily_stoic: str
+    author: str
+    tone: str
 
 def safe_parse(parser, text: str):
     try:
@@ -30,7 +36,9 @@ def safe_parse(parser, text: str):
         return ContentOutput(
             caption="Fallback caption",
             short_post="Fallback short post",
-            image_prompt="Fallback prompt"
+            image_prompt="Fallback prompt",
+            daily_stoic="Fallback stoic",
+            tone="neutral"
         )
 
 def extract_simple_notion(notion_raw: dict, keys=None):
@@ -69,24 +77,14 @@ def generate_image_from_prompt(prompt: str) -> str | None:
     headers = {"Content-Type": "application/json"}
 
     try:
-        # Tăng timeout lên 900 giây (15 phút)
         response = requests.post(url, json=payload, headers=headers, timeout=2000)
         response.raise_for_status()
-
-        # Lưu file tạm
-        image_path = os.path.join(TEMP_DIR, f"generated_image_{uuid.uuid4().hex}.png")
-        with open(image_path, "wb") as f:
-            f.write(response.content)
-
-        print("✅ Ảnh đã lưu:", image_path)
-        return image_path
-
-    except requests.exceptions.RequestException as e:
-        print("❌ Lỗi tạo ảnh (HTTP):", e)
+        img = PILImage.open(BytesIO(response.content)).convert("RGB")
+        print("✅ Image generated successfully")
+        return img
     except Exception as e:
-        print("❌ Lỗi lưu ảnh:", e)
-
-    return None
+        print("❌ Lỗi tạo ảnh:", e)
+        return None
 
 
 # -----------------------------
@@ -95,58 +93,79 @@ def generate_image_from_prompt(prompt: str) -> str | None:
 def content_and_facebook_node(state: dict):
     msg_list = []
     fb_success = False
-    image_file = None
 
     # 1️⃣ Lấy dữ liệu Notion
     notion_raw = get_hexagram_log()
     notion_data = extract_simple_notion(notion_raw)
     print("✅ Dữ liệu rút gọn từ Notion:", notion_data)
 
-    # 2️⃣ Tạo content từ LLM với 3 trường JSON
+    # 2️⃣ Tạo content từ LLM
     parser = PydanticOutputParser(pydantic_object=ContentOutput)
     prompt_text = f"""
-    Bạn là biên tập viên mạng xã hội, ngắn gọn, đồng cảm.
-    Dữ liệu JSON: {notion_data}
+        Bạn là biên tập viên mạng xã hội, ngắn gọn, đồng cảm.
+        Dữ liệu JSON: {notion_data}
 
-    Viết 3 trường JSON:
-    - caption: nội dung chính Facebook bằng tiếng Việt
-    - short_post: nội dung ngắn bằng tiếng Việt, ≤280 ký tự
-    - image_prompt: prompt bằng tiếng Anh để tạo ảnh, ngắn gọn ≤77 ký tự
+        Viết 6 trường JSON:
+        - caption: nội dung chính Facebook bằng tiếng Việt
+        - short_post: nội dung ngắn bằng tiếng Việt, ≤280 ký tự
+        - image_prompt: prompt bằng tiếng Anh để tạo ảnh, ngắn gọn ≤77 ký tự
+        - daily_stoic: một câu trích dẫn ngắn, sâu sắc, truyền cảm hứng, dịch ra tiếng Việt.
+        - author: tên tác giả của câu trích dẫn (ví dụ: Marcus Aurelius, Seneca, Epictetus…)
+        - tone: gợi ý tông màu/thiết kế poster, ngắn gọn. Chỉ chọn trong danh sách:
+            ["happy", "sad", "neutral", "vibrant", "warm", "cool", "pastel", 
+            "bold", "calm", "dark", "light", "luxury", "natural"]
+        Có thể kết hợp nhiều tone (ví dụ: "warm, serene" → "warm, calm").
+        Nếu tone nằm ngoài danh sách, hãy ánh xạ về gần nhất.
 
-    Không thêm text ngoài JSON, chỉ xuất JSON đúng định dạng.
-    {parser.get_format_instructions()}
+        Không thêm text ngoài JSON, chỉ xuất JSON đúng định dạng.
+        {parser.get_format_instructions()}
     """
+
     llm_output = llm.invoke(prompt_text)
     raw_result = getattr(llm_output, "content", str(llm_output))
     content_obj = safe_parse(parser, raw_result)
-    print(f"📌 Content JSON:", content_obj)
+    print("📌 Content JSON:", content_obj)
 
-    # 3️⃣ Tạo ảnh từ image_prompt (blocking)
+    poster = None
+    temp_path = None
+
+    # 3️⃣ Tạo ảnh từ image_prompt
     if content_obj.image_prompt:
-        image_file = generate_image_from_prompt(content_obj.image_prompt)
-        if image_file:
-            msg_list.append(HumanMessage(content=f"✅ Image generated at {image_file}"))
+        pil_img = generate_image_from_prompt(content_obj.image_prompt)
+        if pil_img:
+            poster = generate_poster(
+                pil_image=pil_img,
+                text=content_obj.daily_stoic,
+                author=content_obj.author,
+                size=512,
+                padding=38,
+                font_size=30,
+                line_spacing=4,
+                brightness=0.6,
+                saturation=1.4,
+                gradient_alpha=38,
+                tone=content_obj.tone,
+            )
+            msg_list.append(HumanMessage(content="✅ Poster created"))
         else:
             msg_list.append(HumanMessage(content="❌ Image generation failed"))
 
-    # 4️⃣ Chỉ đăng Facebook khi ảnh đã sẵn sàng
-    try:
-        pipeline = FacebookPipeline()
-        fb_result = pipeline.run(
-            caption=content_obj.caption,
-            short_post=content_obj.short_post,
-            image_path=image_file
-        )
-        fb_success = fb_result.get("published", False)
-        msg_list.append(HumanMessage(content=f"Facebook: {fb_result.get('message', '✅ Done' if fb_success else '❌ Failed')}"))
-    except Exception as e:
-        traceback.print_exc()
-        msg_list.append(HumanMessage(content=f"Facebook error: {e}"))
-
-    # 5️⃣ Xóa file tạm sau khi đăng
-    if image_file and os.path.exists(image_file):
-        os.remove(image_file)
-        print("🗑️ Xóa ảnh tạm:", image_file)
+    # 4️⃣ Đăng Facebook nếu có poster
+    if poster:
+        temp_path = os.path.join(TEMP_DIR, f"poster_{uuid.uuid4().hex}.png")
+        poster.save(temp_path, format="PNG")
+        try:
+            pipeline = FacebookPipeline()
+            fb_result = pipeline.run(
+                caption=content_obj.caption,
+                short_post=content_obj.short_post,
+                image_path=temp_path
+            )
+            fb_success = fb_result.get("published", False)
+            msg_list.append(HumanMessage(content=f"Facebook: {fb_result.get('message', '✅ Done' if fb_success else '❌ Failed')}"))
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
 
     return {
         "status": "done",
