@@ -167,7 +167,7 @@ def content_and_facebook_node(state: dict):
                 try:
                     print("⏳ Generating video...")
                     generate_video(temp_image_path, content_obj.daily_stoic or content_obj.caption, content_obj.author or None,
-                                   output=temp_video_path, size=(720,1280), total_frames=240, fps=30)
+                                   output=temp_video_path, size=(720,900), total_frames=240, fps=30)
                     if os.path.exists(temp_video_path):
                         print("✅ Video generated:", temp_video_path)
                     else:
@@ -193,13 +193,13 @@ def content_and_facebook_node(state: dict):
         )
         msg_list.append(HumanMessage(content=f"Facebook: {'✅ Published' if fb_success else '❌ Failed'}"))
 
-    # 5️⃣ Cleanup temp files
-    # for path in [temp_image_path, temp_video_path]:
-    #     try:
-    #         if path and os.path.exists(path):
-    #             os.remove(path)
-    #     except Exception:
-    #         traceback.print_exc()
+    #5️⃣ Cleanup temp files
+    for path in [temp_image_path, temp_video_path]:
+        try:
+            if path and os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            traceback.print_exc()
 
     return {
         "status": "done",

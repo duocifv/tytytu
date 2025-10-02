@@ -8,7 +8,7 @@ def main():
     fb = FacebookPipeline()
 
     # Path tới video bạn muốn upload
-    video_path = "generated_images/v_a1b2.mp4"
+    video_path = "generated_images/v_3deb.mp4"
 
     # Kiểm tra video tồn tại
     if not os.path.exists(video_path) or os.path.getsize(video_path) == 0:
