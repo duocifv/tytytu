@@ -47,3 +47,4 @@ groq
 beautifulsoup4
 lxml
 moviepy
+feedparser

@@ -107,7 +107,9 @@ def create_hexagram_log(
     Psychology: str = "",
     Work: str = "",
     Trend: str = "",
-    Note: str = "",
+    Family: str = "",
+    Spiritual: str = "",
+    Community: str = "",
 ):
     """
     📌 Tạo mới một blog trong Notion (Kanban Blog Database).
@@ -184,9 +186,19 @@ def create_hexagram_log(
                     {"text": {"content": _safe_text(Trend)}}
                 ]
             },
-            "Note": {
+            "Family": {
                 "rich_text": [
-                    {"text": {"content": _safe_text(Note)}}
+                    {"text": {"content": _safe_text(Family)}}
+                ]
+            },
+            "Spiritual": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Spiritual)}}
+                ]
+            },
+            "Community": {
+                "rich_text": [
+                    {"text": {"content": _safe_text(Community)}}
                 ]
             },
         }

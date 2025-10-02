@@ -1,9 +1,16 @@
+import random
+import time
 import requests
 import traceback
-from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
+from langchain_core.messages import HumanMessage
 from langchain.output_parsers import PydanticOutputParser
-from services.groq_service import chat_groq  # Groq GPT
+from services.groq_service import chat_groq
+from services.seo_service import SEOContentPipeline
+import feedparser  # để parse RSS Google News
+
+
+MAX_NEWS_LENGTH = 8000  # giới hạn ký tự cho field news
 
 
 # -----------------------------
@@ -21,6 +28,7 @@ class DataAnalysisOutput(BaseModel):
 # -----------------------------
 def collect_data():
     results = {"heaven": {}, "earth": {}, "human": {}}
+
     try:
         # Thiên – NOAA Kp Index
         try:
@@ -38,15 +46,52 @@ def collect_data():
         except Exception as e:
             results["earth"]["error"] = str(e)
 
-        # Nhân – Google News RSS (dùng WebBaseLoader)
+        # Nhân – Google News RSS
         try:
-            from langchain_community.document_loaders import WebBaseLoader
-
             news_url = "https://news.google.com/rss?hl=vi&gl=VN&ceid=VN:vi"
-            loader = WebBaseLoader(news_url)
-            docs = loader.load()
-            news_text = "\n\n".join([d.page_content for d in docs])
-            results["human"]["news"] = news_text[:2000]  # lấy gọn 2000 ký tự
+            feed = feedparser.parse(news_url)
+            news_items = []
+            for entry in feed.entries[:50]:  # gom 50 tin mới nhất
+                news_items.append(f"{entry.title} - {entry.link}")
+            news_text = "\n".join(news_items)
+            # Cắt giới hạn ký tự
+            if len(news_text) > MAX_NEWS_LENGTH:
+                news_text = news_text[:MAX_NEWS_LENGTH] + "\n[...]"
+            results["human"]["news"] = news_text
+
+           # -----------------------------
+            # SEO / Trends (thay thế phần gốc)
+            # -----------------------------
+            seo = SEOContentPipeline()
+            seed_keywords = ["thiên tai", "dịch bệnh", "kinh tế", "thời sự"]
+            seo_data = {}
+
+            RETRY_COUNT = 3
+            DELAY_BETWEEN_REQUESTS = 1.5  # giây
+
+            def safe_fetch(fetch_fn):
+                """Thử lại nhiều lần nếu fetch lỗi"""
+                for i in range(RETRY_COUNT):
+                    try:
+                        return fetch_fn()
+                    except Exception as e:
+                        wait = 2 ** i + random.random()
+                        time.sleep(wait)
+                return {"status": "error", "error": "Failed after retries"}
+
+            for kw in seed_keywords:
+                seo_data[kw] = {}
+
+                # Lấy related keywords
+                seo_data[kw]["related_keywords"] = safe_fetch(lambda: seo.fetch_keywords(kw))
+                time.sleep(DELAY_BETWEEN_REQUESTS)
+
+                # Lấy competitor titles
+                seo_data[kw]["competitor_titles"] = safe_fetch(lambda: seo.fetch_competitor_titles(kw))
+                time.sleep(DELAY_BETWEEN_REQUESTS)
+
+            results["human"]["seo_trends"] = seo_data
+
         except Exception as e:
             results["human"]["error"] = str(e)
 
@@ -64,7 +109,7 @@ def data_analysis_node(state: dict) -> dict:
 
     # 1. Gom dữ liệu thô
     raw_data = collect_data()
-
+    print("📌 1 - data_analysis_node - ok", raw_data)
     # 2. Chuẩn bị parser JSON (4 trường)
     parser = PydanticOutputParser(pydantic_object=DataAnalysisOutput)
 
@@ -84,7 +129,7 @@ def data_analysis_node(state: dict) -> dict:
         "- Làm rõ khu vực chịu tác động, mức độ nguy hiểm và hệ quả lâu dài.\n\n"
         "3. Nhân (Human / Xã hội – Y khoa – Đời sống)\n"
         "- Phân tích tác động tới con người: sức khỏe cộng đồng, y tế, xã hội, kinh tế, chính trị.\n"
-        "- Nếu có thiên tai/dịch bệnh/khủng hoảng, hãy làm rõ ảnh hưởng tới cộng đồng.\n\n"
+        "- Nếu có thiên tai/dịch bệnh/khủng hoảng, làm rõ ảnh hưởng tới cộng đồng.\n\n"
         "4. Key Event (Sự kiện chính nổi bật nhất)\n"
         "- Xác định sự kiện quan trọng nhất trong ngày.\n"
         "- Giải thích tại sao sự kiện này nổi bật và liên hệ tới Thiên – Địa – Nhân.\n\n"
@@ -100,7 +145,6 @@ def data_analysis_node(state: dict) -> dict:
         f"Trả về JSON đúng format:\n{parser.get_format_instructions()}"
     )
 
-
     # 4. Gọi Groq GPT
     try:
         raw_result = chat_groq(prompt)
@@ -114,10 +158,19 @@ def data_analysis_node(state: dict) -> dict:
             key_event="Error",
         )
 
-    print("📌 1 - data_analysis_node - ok")
+    # print("📌 1 - data_analysis_node - ok", result.model_dump())
     msg = HumanMessage(content=f"data_analysis_node completed for '{topic}'")
     return {
         "status": "done",
         "messages": [msg],
         "daily": result.model_dump(),
     }
+
+
+# -----------------------------
+# 5️⃣ Example chạy thử
+# -----------------------------
+if __name__ == "__main__":
+    state = {"topic": "Tổng hợp Thiên – Địa – Nhân"}
+    output = data_analysis_node(state)
+    print(output)
