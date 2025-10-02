@@ -1,5 +1,6 @@
 # main_pipeline_with_two_tier.py
 import os
+from typing import TypedDict
 import uuid
 import traceback
 import random
@@ -11,7 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 from langchain.output_parsers import PydanticOutputParser
 from PIL import Image as PILImage
-
+from langchain.output_parsers import JsonOutputParser
 from brain.notion_logger import get_hexagram_log
 from services.generate_video_service import generate_video
 from services.llm_service import llm
@@ -126,15 +127,46 @@ def randomize_image_prompt(prompt: str) -> str:
     new_prompt = getattr(out, "content", prompt)
     return new_prompt[:77]
 
-def randomize_daily_quote(quote: str) -> str:
-    """LLM viết lại daily quote khác ý nghĩa tương tự"""
+# Định nghĩa schema JSON
+class QuoteSchema(BaseModel):
+    new_quote: str
+    new_author: str
+
+def randomize_daily_quote(quote: str, author: str) -> QuoteSchema:
+    """
+    LLM viết lại daily quote thành câu khác, giữ ý nghĩa tương tự.
+    Trả về JSON {"new_quote": "...", "new_author": "..."}.
+    """
+    parser = JsonOutputParser(pydantic_object=QuoteSchema)
+
     prompt_wrap = ChatPromptTemplate.from_messages([
-        ("system", "Bạn là chuyên gia viết câu triết lý, truyền năng lượng."),
-        ("user", f"Viết lại câu triết lý sau thành câu mới, ý nghĩa tương tự, truyền cảm hứng:\n{quote}")
+        ("system", "Bạn là chuyên gia viết câu triết lý, truyền năng lượng. Tập trung ngắn gọn, xúc tích."),
+        ("user",
+         "Nhiệm vụ: Từ câu sau, tạo 1 câu mới DUY NHẤT (paraphrase) có cùng ý nghĩa và 1 tác giả biến thể AN TOÀN.\n\n"
+         "Yêu cầu nghiêm ngặt:\n"
+         "- Chỉ trả về **một** object JSON duy nhất, không văn bản mô tả thêm.\n"
+         "- JSON phải có 2 trường: \"new_quote\" và \"new_author\".\n"
+         "- \"new_quote\": **một câu duy nhất**, không quá 140 ký tự, không có dấu ngoặc kép bên ngoài, kết thúc bằng ., ! hoặc ?.\n"
+         "- \"new_author\": phải là **biến thể an toàn** của tác giả gốc (ví dụ: \"Adapted — <tác giả gốc>\", \"Inspired by <tác giả gốc>\", \"<tác giả gốc> (paraphrased)\").\n"
+         "- KHÔNG bịa tên người thật khác, KHÔNG thêm nhiều lựa chọn, KHÔNG giải thích.\n\n"
+         "Câu gốc: {quote}\n"
+         "Tác giả gốc: {author}\n\n"
+         "Trả về ví dụ:\n"
+         '{"new_quote":"...","new_author":"Adapted — Marcus Aurelius"}\n\n'
+         "Trả về **chỉ JSON**.")
     ])
-    out = llm.invoke(prompt_wrap.format())
-    new_quote = getattr(out, "content", quote)
-    return new_quote
+
+    # Đưa schema format instructions vào
+    prompt_final = prompt_wrap.format(
+        quote=quote,
+        author=author
+    ) + f"\n\n{parser.get_format_instructions()}"
+
+    # Gọi model
+    out = llm.invoke(prompt_final)
+
+    data = parser.parse(out.content)
+    return data["new_quote"], data["new_author"]
 
 # -----------------------------
 # 4️⃣ Main pipeline
@@ -185,8 +217,8 @@ def content_and_facebook_node(state: dict):
     parser_instructions = parser.get_format_instructions()
     p_content = ChatPromptTemplate.from_messages([
         ("system", "Bạn là biên tập viên mạng xã hội, viết status Facebook đời thường, thân mật, gần gũi."),
-        ("user", f"""
-            Dựa vào insight từ bước phân tích: {insight_text}
+        ("user", """
+            Dựa vào insight từ bước phân tích: {insight}
             Và dữ liệu thực tế từ RAG: {rag_info}
 
             Hãy viết thành một status Facebook đời thường, gần gũi và hữu ích, như một người bạn đang trò chuyện với cộng đồng.
@@ -208,23 +240,26 @@ def content_and_facebook_node(state: dict):
             - fb_title (50–100 ký tự)
             - fb_description (≤500 ký tự)
             - image_prompt (≤77 ký tự)
-            - daily_quote
+            - daily_stoic
             - quote_author
             - poster_tone (chọn từ: ["happy","sad","neutral","vibrant","warm","cool","pastel","bold","calm","dark","light","luxury","natural"])
 
             Chỉ xuất **JSON đúng định dạng**, không thêm text nào khác ngoài JSON.
 
-            {parser_instructions}
+            Schema: {parser_instructions}
             """)
     ]).partial(parser_instructions=parser_instructions)
 
-    prompt_content = p_content.format(insight=insight_text, rag_info=rag_info)
+    prompt_content = p_content.format(insight=insight_text, rag_info=rag_info,parser_instructions=parser_instructions)
     llm_output = llm.invoke(prompt_content)
     content_obj = safe_parse(parser, getattr(llm_output, "content", str(llm_output)))
 
     # 5️⃣ Semantic randomization
     content_obj.fb_description = paraphrase_text(content_obj.fb_description)
-    content_obj.daily_stoic = randomize_daily_quote(content_obj.daily_stoic)
+    content_obj.daily_stoic, content_obj.quote_author = randomize_daily_quote(
+        content_obj.daily_stoic,
+        content_obj.quote_author
+    )
     content_obj.image_prompt = randomize_image_prompt(content_obj.image_prompt)
 
     print("📌 Content JSON sau randomization:", content_obj)
