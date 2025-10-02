@@ -48,12 +48,12 @@ def wrap_text(draw, text, font, max_width):
     return lines
 
 # subtle vignette
-def vignette_mask(size, strength=0.6):
+def vignette_mask(size, strength=0.6, center_radius=0.77):
     width, height = size if isinstance(size, tuple) else (size, size)
     x = np.linspace(-1, 1, width)[None, :]
     y = np.linspace(-1, 1, height)[:, None]
     d = np.sqrt(x**2 + y**2)
-    mask = 1 - np.clip((d - 0.5) / (1.0 - 0.5), 0, 1)
+    mask = 1 - np.clip((d - center_radius) / (1.0 - center_radius), 0, 1)
     mask = mask ** (1 + strength*2)
     mask_img = Image.fromarray((mask * 255).astype(np.uint8), mode="L")
     return mask_img.filter(ImageFilter.GaussianBlur(radius=min(width,height)*0.03))
@@ -133,12 +133,24 @@ def generate_frame(pil_image, text, author=None, size=512,
     plaque_x = (width - plaque_w) // 2
     plaque_y = (height - plaque_h) // 2
 
+    # --- tạo plaque oval đứng ---
     plaque_layer = Image.new("RGBA", (width, height), (0,0,0,0))
-    rr_mask = rounded_rect_mask(size, (plaque_x, plaque_y, plaque_x+plaque_w, plaque_y+plaque_h), radius=int(width*0.03))
-    dark = Image.new("RGBA", (width, height), (10,10,10,int(110 * t_smooth * 0.9)))
-    plaque_layer = Image.composite(dark, plaque_layer, rr_mask)
-    plaque_layer = plaque_layer.filter(ImageFilter.GaussianBlur(radius=width*0.008))
+    oval_mask = Image.new("L", (width, height), 0)
+    od = ImageDraw.Draw(oval_mask)
+    # tạo oval đứng, rộng = plaque_w, cao = plaque_h
+    od.ellipse((plaque_x, plaque_y, plaque_x+plaque_w, plaque_y+plaque_h), fill=255)
+    # làm mềm viền bằng blur
+    oval_mask = oval_mask.filter(ImageFilter.GaussianBlur(radius=width*0.015))
+
+    # layer màu tối, alpha vừa phải để mờ
+    dark = Image.new("RGBA", (width, height), (10,10,10,int(40 * t_smooth)))  # giảm alpha để mờ
+    plaque_layer = Image.composite(dark, plaque_layer, oval_mask)
+
+    # ghép vào frame
     frame = Image.alpha_composite(frame, plaque_layer)
+
+
+
 
     # text with shadow
     text_progress = smoothstep(min(1.0, progress * 2.2))
@@ -149,7 +161,7 @@ def generate_frame(pil_image, text, author=None, size=512,
     y_start = plaque_y + plaque_padding_y + int((plaque_h - plaque_padding_y*2 - (author_font_size+10 if author else 0) - total_text_h) / 2)
 
     for i, line in enumerate(lines):
-        line_t = min(1.0, max(0.0, (progress * 1.6) - i*0.03))
+        line_t = min(1.0, max(0.0, (progress * 2.5) - i*0.01))
         line_e = ease_out_cubic(line_t)
         w = draw.textbbox((0,0), line, font=font_quote)[2]
         x = x_center - w // 2
@@ -171,7 +183,7 @@ def generate_frame(pil_image, text, author=None, size=512,
         author_text = f"— {author}"
         w = draw.textbbox((0,0), author_text, font=font_author)[2]
         ay = plaque_y + plaque_h - plaque_padding_y - author_font_size
-        a_t = smoothstep(min(1.0, (progress - 0.18) * 2.5))
+        a_t = smoothstep(min(1.0, (progress - 0.1) * 3.0))
         a_alpha = int(220 * a_t)
         a_slide = int((1 - a_t) * width * 0.015)
         author_layer = Image.new("RGBA", frame.size, (0,0,0,0))
@@ -179,16 +191,30 @@ def generate_frame(pil_image, text, author=None, size=512,
         ad.text(((width - w)//2 + a_slide, ay), author_text, font=font_author, fill=(230,230,230,a_alpha))
         frame = Image.alpha_composite(frame, author_layer)
 
-    # vignette
+    # Lấy màu trung bình nền video
+    def average_color(img):
+        # resize nhỏ để tính nhanh
+        small = img.resize((16,16))
+        arr = np.array(small)
+        avg = arr.mean(axis=(0,1))
+        return tuple(int(c) for c in avg)
+
+    # --------- trong generate_frame, thay cho vignette cũ ---------
     vmask = vignette_mask(size, strength=0.7)
     vmask = ImageOps.invert(vmask)
-    black = Image.new("RGBA", frame.size, (0, 0, 0, 120))
-    black.putalpha(vmask)
-    frame = Image.alpha_composite(frame, black)
+    
+    alpha_scale = 0.8  # 0.0 = trong suốt hoàn toàn, 1.0 = full
+    # scale mask để giảm bóng
+    vmask = vmask.point(lambda p: int(p * alpha_scale))
+
+    avg_color = average_color(base)  # lấy màu từ background đã blur/color grade
+    color_layer = Image.new("RGBA", frame.size, avg_color + (180,))  # thêm alpha
+    color_layer.putalpha(vmask)
+    frame = Image.alpha_composite(frame, color_layer)
 
     # film grain
     grain = film_grain(size, amount=grain_amount)
-    grain.putalpha(int(40 * 0.9))
+    grain.putalpha(int(38 * 0.9))
     frame = Image.alpha_composite(frame, grain)
 
     return frame

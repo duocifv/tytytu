@@ -25,9 +25,9 @@ def finalize_node(state):
         Psychology=daily.get("psychology", ""),
         Work=daily.get("work", ""),
         Trend=daily.get("trend", ""),
-        Note=daily.get("family", ""),
-        Note=daily.get("spiritual", ""),
-        Note=daily.get("community", "")
+        Family=daily.get("family", ""),
+        Spiritual=daily.get("spiritual", ""),
+        Community=daily.get("community", "")
     )
 
     print("✅ Đã gửi dữ liệu lên Notion")
