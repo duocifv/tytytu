@@ -9,6 +9,7 @@ from brain.notion_logger import done_log, failed_log, start_log, not_started_log
 from brain.types import State
 
 # Node imports
+from nodes.content_fb_pipeline import content_and_facebook_node
 from nodes.keyword_node import keyword_node
 from nodes.research_node import research_node
 from nodes.insight_node import insight_node
@@ -22,7 +23,6 @@ from nodes.finalize_node import finalize_node
 from nodes.data_analysis_node import data_analysis_node
 from nodes.create_daily_node import create_daily_node
 from nodes.human_reference_node import human_reference_node
-from nodes.content_and_facebook_node import content_and_facebook_node
 
 # =========================
 # Khởi tạo Brain & Policy

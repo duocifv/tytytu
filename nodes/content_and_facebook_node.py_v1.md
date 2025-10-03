@@ -1,26 +1,23 @@
 # main_pipeline_with_two_tier.py
 import os
-from typing import TypedDict
 import uuid
 import traceback
-import random
-from io import BytesIO
 import requests
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 from langchain.output_parsers import PydanticOutputParser
-from PIL import Image as PILImage
-from langchain.output_parsers import JsonOutputParser
 from brain.notion_logger import get_hexagram_log
 from services.generate_video_service import generate_video
 from services.llm_service import llm
 from services.facebook_service import FacebookPipeline
-from services.rag_service import RAGRetriever
+from services.rag_service import RAGRetriever  # giả định có RAG
+from PIL import Image as PILImage
+from io import BytesIO
 
 # -----------------------------
-# Thư mục lưu tạm
+# Thư mục lưu tạm (ảnh + video)
 # -----------------------------
 TEMP_DIR = "generated_images"
 os.makedirs(TEMP_DIR, exist_ok=True)
@@ -51,9 +48,9 @@ def safe_parse(parser, text: str):
         )
 
 def extract_simple_notion(notion_raw: dict, keys=None):
+    """Rút gọn dữ liệu từ Notion"""
     if keys is None:
-        keys = ["Nhan", "Dia", "Thien", "Summary", "KeyEvent", "Health", "Work", "Effect", 
-                "Trend", "Finance", "Psychology", "Family", "Spiritual", "Community"]
+        keys = ["Nhan", "Dia", "Thien", "Summary", "KeyEvent", "Health", "Work", "Effect", "Trend", "Finance", "Psychology", "Family", "Spiritual", "Community" ]
     simple = {}
     try:
         props = notion_raw.get("properties", {})
@@ -67,6 +64,7 @@ def extract_simple_notion(notion_raw: dict, keys=None):
     except Exception as e:
         print(e)
     return simple
+
 
 # -----------------------------
 # 2️⃣ Tạo ảnh từ Hugging Face Space
@@ -93,10 +91,18 @@ def post_media(pipeline: FacebookPipeline, video_path=None, image_path=None, fb_
     fb_title_safe = fb_title[:100]
     try:
         if video_path:
-            fb_result = pipeline.post_video(video_path=video_path, title=fb_title_safe, description=fb_description)
+            fb_result = pipeline.post_video(
+                video_path=video_path,
+                title=fb_title_safe,
+                description=fb_description
+            )
             success = bool(fb_result.get("id"))
         elif image_path:
-            fb_result = pipeline.run(image_path=image_path, title=fb_title, description=fb_description)
+            fb_result = pipeline.run(
+                image_path=image_path,
+                title=fb_title,
+                description=fb_description
+            )
             success = bool(fb_result.get("published", False))
         else:
             success = False
@@ -106,70 +112,7 @@ def post_media(pipeline: FacebookPipeline, video_path=None, image_path=None, fb_
     return success
 
 # -----------------------------
-# 3️⃣ Semantic Randomization helpers
-# -----------------------------
-def paraphrase_text(text: str, style="friendly") -> str:
-    """Sử dụng LLM paraphrase để tạo bài viết khác hoàn toàn"""
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "Bạn là chuyên gia viết bài Facebook, thân mật, dí dỏm, gần gũi."),
-        ("user", f"Viết lại nội dung sau thành bài đăng hoàn toàn mới, cùng ý tưởng nhưng cách diễn đạt khác, style {style}:\n{text}")
-    ])
-    out = llm.invoke(prompt.format())
-    return getattr(out, "content", text)
-
-def randomize_image_prompt(prompt: str) -> str:
-    """LLM sinh prompt hình ảnh khác dựa trên concept"""
-    prompt_wrap = ChatPromptTemplate.from_messages([
-        ("system", "Bạn là chuyên gia tạo prompt AI cho hình ảnh."),
-        ("user", f"Concept: {prompt}\nHãy viết 1 prompt hình ảnh hoàn toàn mới, khác biệt nhưng cùng ý tưởng, ngắn gọn ≤77 ký tự.")
-    ])
-    out = llm.invoke(prompt_wrap.format())
-    new_prompt = getattr(out, "content", prompt)
-    return new_prompt[:77]
-
-# Định nghĩa schema JSON
-class QuoteSchema(BaseModel):
-    new_quote: str
-    new_author: str
-
-def randomize_daily_quote(quote: str, author: str) -> QuoteSchema:
-    """
-    LLM viết lại daily quote thành câu khác, giữ ý nghĩa tương tự.
-    Trả về JSON {"new_quote": "...", "new_author": "..."}.
-    """
-    parser = JsonOutputParser(pydantic_object=QuoteSchema)
-
-    prompt_wrap = ChatPromptTemplate.from_messages([
-        ("system", "Bạn là chuyên gia viết câu triết lý, truyền năng lượng. Tập trung ngắn gọn, xúc tích."),
-        ("user",
-         "Nhiệm vụ: Từ câu sau, tạo 1 câu mới DUY NHẤT (paraphrase) có cùng ý nghĩa và 1 tác giả biến thể AN TOÀN.\n\n"
-         "Yêu cầu nghiêm ngặt:\n"
-         "- Chỉ trả về **một** object JSON duy nhất, không văn bản mô tả thêm.\n"
-         "- JSON phải có 2 trường: \"new_quote\" và \"new_author\".\n"
-         "- \"new_quote\": **một câu duy nhất**, không quá 140 ký tự, không có dấu ngoặc kép bên ngoài, kết thúc bằng ., ! hoặc ?.\n"
-         "- \"new_author\": phải là **biến thể an toàn** của tác giả gốc (ví dụ: \"Adapted — <tác giả gốc>\", \"Inspired by <tác giả gốc>\", \"<tác giả gốc> (paraphrased)\").\n"
-         "- KHÔNG bịa tên người thật khác, KHÔNG thêm nhiều lựa chọn, KHÔNG giải thích.\n\n"
-         "Câu gốc: {quote}\n"
-         "Tác giả gốc: {author}\n\n"
-         "Trả về ví dụ:\n"
-         '{"new_quote":"...","new_author":"Adapted — Marcus Aurelius"}\n\n'
-         "Trả về **chỉ JSON**.")
-    ])
-
-    # Đưa schema format instructions vào
-    prompt_final = prompt_wrap.format(
-        quote=quote,
-        author=author
-    ) + f"\n\n{parser.get_format_instructions()}"
-
-    # Gọi model
-    out = llm.invoke(prompt_final)
-
-    data = parser.parse(out.content)
-    return data["new_quote"], data["new_author"]
-
-# -----------------------------
-# 4️⃣ Main pipeline
+# 3️⃣ Pipeline chính: Two-tier + RAG + Refine/Polish
 # -----------------------------
 def content_and_facebook_node(state: dict):
     msg_list = []
@@ -181,6 +124,8 @@ def content_and_facebook_node(state: dict):
     notion_raw = get_hexagram_log()
     notion_data = extract_simple_notion(notion_raw)
     print("✅ Dữ liệu rút gọn từ Notion:", notion_data)
+
+    # ✅ Nếu notion_data rỗng, đặt mặc định
     if not notion_data:
         notion_data = {"Summary": "Không có dữ liệu hôm nay"}
 
@@ -206,7 +151,7 @@ def content_and_facebook_node(state: dict):
     # -----------------------------
     # 3️⃣ RAG: lấy dữ liệu thực tế
     # -----------------------------
-    rag = RAGRetriever(sources=["VNExpress","Khí tượng Thủy văn","WHO"])
+    rag = RAGRetriever(sources=["VNExpress", "Khí tượng Thủy văn", "WHO"])
     rag_info = rag.retrieve(notion_data)
     if isinstance(rag_info, dict):
         rag_info = str(rag_info)
@@ -216,8 +161,9 @@ def content_and_facebook_node(state: dict):
     # -----------------------------
     parser_instructions = parser.get_format_instructions()
     p_content = ChatPromptTemplate.from_messages([
-        ("system", "Bạn là biên tập viên mạng xã hội, viết status Facebook đời thường, thân mật, gần gũi."),
-        ("user", """
+        ("system", "Bạn là biên tập viên mạng xã hội, viết status Facebook đời thường, gần gũi."),
+        ("user",
+        """
             Dựa vào insight từ bước phân tích: {insight}
             Và dữ liệu thực tế từ RAG: {rag_info}
 
@@ -240,31 +186,50 @@ def content_and_facebook_node(state: dict):
             - fb_title (50–100 ký tự)
             - fb_description (≤500 ký tự)
             - image_prompt (≤77 ký tự)
-            - daily_stoic
+            - daily_quote
             - quote_author
             - poster_tone (chọn từ: ["happy","sad","neutral","vibrant","warm","cool","pastel","bold","calm","dark","light","luxury","natural"])
 
             Chỉ xuất **JSON đúng định dạng**, không thêm text nào khác ngoài JSON.
 
-            Schema: {parser_instructions}
-            """)
+            {parser_instructions}
+        """)
     ]).partial(parser_instructions=parser_instructions)
 
-    prompt_content = p_content.format(insight=insight_text, rag_info=rag_info,parser_instructions=parser_instructions)
+    prompt_content = p_content.format(insight=insight_text, rag_info=rag_info)
     llm_output = llm.invoke(prompt_content)
     content_obj = safe_parse(parser, getattr(llm_output, "content", str(llm_output)))
 
-    # 5️⃣ Semantic randomization
-    content_obj.fb_description = paraphrase_text(content_obj.fb_description)
-    content_obj.daily_stoic, content_obj.quote_author = randomize_daily_quote(
-        content_obj.daily_stoic,
-        content_obj.quote_author
-    )
-    content_obj.image_prompt = randomize_image_prompt(content_obj.image_prompt)
+    # -----------------------------
+    # 5️⃣ Refine / Polish
+    # -----------------------------
+    p_refine = ChatPromptTemplate.from_messages([
+    ("system", "Bạn là chuyên gia chỉnh sửa văn bản, đảm bảo ngôn ngữ Facebook tự nhiên và dí dỏm."),
+    ("user", """
+    Hãy tinh chỉnh JSON sau để status Facebook:
+    - Mượt mà, tự nhiên, gần gũi
+    - Thêm chút dí dỏm, ấm áp
+    - Giữ nguyên nội dung chính và cảm xúc
+    - Không thay đổi cấu trúc trường
 
-    print("📌 Content JSON sau randomization:", content_obj)
+    JSON gốc:
+    {raw_json}
 
+    Yêu cầu nghiêm ngặt:
+    - Output chỉ là JSON hợp lệ, đúng schema.
+    - Không thêm giải thích hay text khác.
+    Schema: {parser_instructions}
+    """)
+    ]).partial(raw_json=content_obj.model_dump_json())
+
+    prompt_refine_str = p_refine.format(raw_json=content_obj.model_dump_json(),parser_instructions="")
+    llm_refined = llm.invoke(prompt_refine_str)
+    content_obj = safe_parse(parser, getattr(llm_refined, "content", str(llm_refined)))
+    print("📌 Content JSON sau refine:", content_obj)
+
+    # -----------------------------
     # 6️⃣ Tạo ảnh + video
+    # -----------------------------
     if content_obj.image_prompt:
         pil_img = generate_image_from_prompt(content_obj.image_prompt)
         if pil_img:
@@ -283,8 +248,8 @@ def content_and_facebook_node(state: dict):
                         content_obj.daily_stoic or content_obj.fb_description,
                         content_obj.quote_author or None,
                         output=temp_video_path,
-                        size=(1080,1350),
-                        total_frames=180,
+                        size=(720,900),
+                        total_frames=240,
                         fps=30
                     )
                     if not os.path.exists(temp_video_path):
@@ -292,11 +257,14 @@ def content_and_facebook_node(state: dict):
                 except Exception:
                     traceback.print_exc()
                     temp_video_path = None
+
             msg_list.append(HumanMessage(content="✅ Video created" if temp_video_path else "❌ Video creation failed"))
         else:
             msg_list.append(HumanMessage(content="❌ Image generation failed"))
 
-    # 7️⃣ Đăng FB
+    # -----------------------------
+    # 7️⃣ Đăng Facebook
+    # -----------------------------
     if temp_video_path or temp_image_path:
         pipeline = FacebookPipeline()
         fb_success = post_media(
@@ -308,7 +276,9 @@ def content_and_facebook_node(state: dict):
         )
         msg_list.append(HumanMessage(content=f"Facebook: {'✅ Published' if fb_success else '❌ Failed'}"))
 
-    # 8️⃣ Cleanup temp
+    # -----------------------------
+    # 8️⃣ Cleanup temp files
+    # -----------------------------
     for path in [temp_image_path, temp_video_path]:
         try:
             if path and os.path.exists(path):
@@ -316,4 +286,8 @@ def content_and_facebook_node(state: dict):
         except Exception:
             traceback.print_exc()
 
-    return {"status": "done", "messages": msg_list, "published": fb_success}
+    return {
+        "status": "done",
+        "messages": msg_list,
+        "published": fb_success,
+    }

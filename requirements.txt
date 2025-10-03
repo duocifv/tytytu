@@ -48,3 +48,6 @@ beautifulsoup4
 lxml
 moviepy
 feedparser
+runware
+imageio[ffmpeg]
+elevenlabs
