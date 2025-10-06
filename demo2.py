@@ -2,41 +2,50 @@ import asyncio
 import os
 import uuid
 import requests
-from moviepy import ImageClip, AudioFileClip, TextClip, CompositeVideoClip, concatenate_videoclips
-import os, uuid
+import textwrap
+from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
+from PIL import Image, ImageDraw, ImageFont
 from runware import Runware, IImageInference
-from pydantic import BaseModel
 from elevenlabs import ElevenLabs, save
 
-# ---------------- Cấu hình ----------------
+# ---------------- Config ----------------
 TEMP_DIR = "generated_reels"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 RUNWARE_API_KEY = "JDI7KlmsSb0j7wdPVKFS0X0B69EcpUoF"
 ELEVEN_API_KEY = "sk_109a89e7b19bd2d1ee64d29accf88bb51dbae83dfeaa4a10"
 
-# ---------------- Schema Reels ----------------
-class ReelsOutput(BaseModel):
-    fb_title: str
-    fb_description: str
-    image_prompt: str
+# ---------------- Nội dung câu chuyện ----------------
+story_texts = [
+    {"speaker": "Nam", "text": "Uống gì?", "image_prompt": "A young man in a cafe asking a question"},
+    {"speaker": "Nữ", "text": "Trà sữa trân châu.", "image_prompt": "A young woman smiling with bubble tea"},
+    {"speaker": "Nam", "text": "Thôi anh uống theo em, miễn em trả tiền.", "image_prompt": "A playful man laughing"},
+    {"speaker": "Nữ", "text": "Haha, lầy ghê.", "image_prompt": "A woman laughing playfully"}
+]
 
-# ---------------- Hàm tạo nội dung ----------------
-def create_content():
-    return ReelsOutput(
-        fb_title="Vượt Bão Giông: Sức Mạnh Đoàn Kết Của Việt Nam",
-        fb_description="Dù thiên tai chồng chất, chúng ta không đơn độc. Nắm chặt tay nhau, cùng sẻ chia và kiến tạo lại.",
-        image_prompt="Panoramic photo-editorial collage (3x3 with large center): center flooded Hanoi with families; surrounding panels clearly show medical aid (health), scattered money and falling stock overlay (finance), worried faces and phone alerts (psychology), idle factory and trucks (work), stormy sky with subtle geomagnetic bands (trend), family indoors caring for children and elderly (family), small meditation group (spiritual), volunteers distributing food (community). Modern, high-detail, cohesive, cinematic."
+
+# ---------------- Generate TTS ----------------
+def generate_tts(text: str, speaker: str) -> str:
+    client = ElevenLabs(api_key=ELEVEN_API_KEY)
+    voice_id = "3VnrjnYrskPMDsapTr8X" if speaker == "Nam" else "X0V9HEDEuaVhVqzVPUKM"
+    audio_path = os.path.join(TEMP_DIR, f"{uuid.uuid4().hex[:4]}.mp3")
+    audio = client.text_to_speech.convert(
+        text=text,
+        voice_id=voice_id,
+        model_id="eleven_v3",
+        output_format="mp3_44100_128"
     )
+    save(audio, audio_path)
+    return audio_path
 
-# ---------------- Hàm tạo ảnh AI ----------------
-async def generate_image(content_obj: ReelsOutput) -> str:
+# ---------------- Generate AI Image ----------------
+async def generate_image(prompt: str) -> str:
     runware = Runware(api_key=RUNWARE_API_KEY)
     await runware.connect()
     request_image = IImageInference(
-        positivePrompt=content_obj.image_prompt,
-        height=1024,
-        width=1024,
+        positivePrompt=prompt,
+        height=512,
+        width=512,
         model="runware:100@1",
         steps=25,
         CFGScale=4.0,
@@ -51,101 +60,76 @@ async def generate_image(content_obj: ReelsOutput) -> str:
         f.write(img_data)
     return img_path
 
-# ---------------- Hàm tạo giọng đọc TTS ----------------
-def generate_tts(content_obj: ReelsOutput) -> str:
-    client = ElevenLabs(api_key=ELEVEN_API_KEY)
-    audio_path = os.path.join(TEMP_DIR, f"{uuid.uuid4().hex[:4]}.mp3")
-    audio = client.text_to_speech.convert(
-        text=content_obj.fb_title,
-        voice_id="3VnrjnYrskPMDsapTr8X",
-        model_id="eleven_v3",
-        output_format="mp3_44100_128"
-    )
-    save(audio, audio_path)
-    return audio_path
+# ---------------- Draw text on image ----------------
+def draw_text_on_image(image_path: str, text: str, speaker: str) -> str:
+    img = Image.open(image_path).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    font_path = "NotoSerif-Medium.ttf"
+    font = ImageFont.truetype(font_path, size=40)
+    color = "cyan" if speaker == "Nam" else "pink"
 
-# ---------------- Hàm ghép video ----------------
-def create_video(img_path: str, audio_path: str, text: str) -> str:
-    image_clip = ImageClip(img_path).with_duration(10)
-    audio_clip = AudioFileClip(audio_path)
+    wrapped_lines = []
+    for line in text.split("\n"):
+        wrapped_lines.extend(textwrap.wrap(line, width=25))
 
-    txt_clip = TextClip(
-        font="NotoSerif-Medium.ttf",
-        text=text,
-        font_size=70,
-        method="caption",
-        size=(1024, 1024),
-        color='white',
-    ).with_duration(10).with_position('center')
+    line_heights = []
+    max_line_w = 0
+    for line in wrapped_lines:
+        bbox = draw.textbbox((0, 0), line, font=font)
+        line_w = bbox[2] - bbox[0]
+        line_h = bbox[3] - bbox[1]
+        line_heights.append(line_h)
+        max_line_w = max(max_line_w, line_w)
+    total_text_h = sum(line_heights) + (len(wrapped_lines)-1)*10
 
-    video_clip = CompositeVideoClip([image_clip, txt_clip]).with_audio(audio_clip)
-    output_video = os.path.join(TEMP_DIR, f"reel_{uuid.uuid4().hex[:4]}.mp4")
-    video_clip.write_videofile(output_video, fps=24)
-    return output_video
+    w, h = img.size
+    y = (h - total_text_h) / 2
 
+    for line in wrapped_lines:
+        bbox = draw.textbbox((0, 0), line, font=font)
+        line_w = bbox[2] - bbox[0]
+        line_h = bbox[3] - bbox[1]
+        draw.text(((w - line_w)/2, y), line, font=font, fill=color)
+        y += line_h + 10
 
-def create_slideshow_video(image_paths: list, audio_path: str, texts: list, duration_per_slide=3) -> str:
+    out_path = os.path.join(TEMP_DIR, f"{uuid.uuid4().hex[:4]}_text.jpg")
+    img.save(out_path)
+    return out_path
+
+# ---------------- Create video ----------------
+def create_slideshow_video(image_paths: list, speaker_texts: list, audio_paths: list) -> str:
     slides = []
-    for i, img_path in enumerate(image_paths):
-        # Image clip
-        img_clip = ImageClip(img_path).with_duration(duration_per_slide)
-        
-        # Text clip
-        text_clip = TextClip(
-            font="NotoSerif-Medium.ttf",
-            text=texts[i] if i < len(texts) else "",
-            font_size=60,
-            method="caption",
-            size=(1024, 1024),
-            color="white"
-        ).with_duration(duration_per_slide).with_position("center")
-        
-        # Ghép text + hình
-        slide = CompositeVideoClip([img_clip, text_clip])
-        
-        # Áp dụng fade bằng vfx
-        slide = vfx.fadein(slide, 0.5)
-        slide = vfx.fadeout(slide, 0.5)
-        slides.append(slide)
+    audio_clips = []
 
-    # Nối tất cả slide
+    for i, img_path in enumerate(image_paths):
+        img_with_text = draw_text_on_image(img_path, speaker_texts[i]['text'], speaker_texts[i]['speaker'])
+        audio_clip = AudioFileClip(audio_paths[i])
+        img_clip = ImageClip(img_with_text).set_duration(audio_clip.duration)
+        slides.append(img_clip)
+        audio_clips.append(audio_clip)
+
     video_clip = concatenate_videoclips(slides, method="compose")
-    
-    # Thêm giọng đọc
-    audio_clip = AudioFileClip(audio_path)
-    audio_clip = audio_clip.with_duration(video_clip.duration)
-    video_clip = video_clip.with_audio(audio_clip)
-    
-    # Xuất video
-    output_video = os.path.join(TEMP_DIR, f"slideshow_{uuid.uuid4().hex[:4]}.mp4")
+    full_audio = concatenate_audioclips(audio_clips)
+    video_clip = video_clip.set_audio(full_audio)
+
+    output_video = os.path.join(TEMP_DIR, "trasua_reel.mp4")
     video_clip.write_videofile(output_video, fps=24)
-    
     return output_video
 
-# ---------------- Hàm chính ----------------
-async def node_reels_demo():
-    content_obj = create_content()
-    print("📌 Reels JSON:", content_obj)
+# ---------------- Main ----------------
+async def create_trasua_reel():
+    image_paths, audio_paths = [], []
 
-    # Bạn có thể dùng ảnh + audio sẵn có để test, hoặc generate bằng API
-    img_path = await generate_image(content_obj)
-    audio_path = generate_tts(content_obj)
+    for s in story_texts:
+        img_path = await generate_image(s['image_prompt'])
+        audio_path = generate_tts(s['text'], s['speaker'])
+        image_paths.append(img_path)
+        audio_paths.append(audio_path)
 
-    output_video = create_video(img_path, audio_path, content_obj.fb_title)
+    video_path = create_slideshow_video(image_paths, story_texts, audio_paths)
+    return {"video_path": video_path}
 
-    return {
-        "status": "done",
-        "content": content_obj,
-        "image_path": img_path,
-        "audio_path": audio_path,
-        "video_path": output_video
-    }
-
-# ---------------- Ví dụ sử dụng ----------------
+# ---------------- Run ----------------
 if __name__ == "__main__":
-    import asyncio
-
-    result = asyncio.run(node_reels_demo())
+    result = asyncio.run(create_trasua_reel())
     print("🎬 Video tạo xong:", result["video_path"])
-
-    

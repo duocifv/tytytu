@@ -46,7 +46,7 @@ langchain-openai
 groq
 beautifulsoup4
 lxml
-moviepy
+moviepy==1.0.3
 feedparser
 runware
 imageio[ffmpeg]
