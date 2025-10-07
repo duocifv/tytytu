@@ -2,19 +2,16 @@ import asyncio
 import os
 import uuid
 from dotenv import load_dotenv
-import requests
 import textwrap
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
 from PIL import Image, ImageDraw, ImageFont
 from elevenlabs import ElevenLabs, save
-import base64
-from openai import OpenAI
-import base64
+import asyncio
+from services.modelslab_service import generate_image_direct
+
 
 # Load biến môi trường từ .env
 load_dotenv()
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))  # Set biến môi trường trước khi chạy
-
 
 # ---------------- Config ----------------
 TEMP_DIR = "generated_reels"
@@ -27,20 +24,47 @@ ELEVEN_API_KEY = "sk_109a89e7b19bd2d1ee64d29accf88bb51dbae83dfeaa4a10"
 story_texts = [
     {
         "scene": 1,
-        "dialogue": {"male": "GPS này ghét người giàu à?", "female": "Ừ, nó đậu siêu xe mình trong sân khỉ kìa!"},
-        "prompt": "A stunning young Korean couple, 20s, model/actor look, extremely stylish and sexy, man wearing women's blouse + men's trousers, woman wearing men's shirt + elegant skirt, faces and outfits consistent across all scenes. Scene 1: they stand shocked beside a luxury supercar stuck in a wild jungle, monkeys curiously surrounding them, expressions confused yet glamorous, cinematic lighting, vibrant colors, K-drama comedy style, contrast between wealth and wilderness."
+        "dialogue": {
+            "male": "Cầm giúp anh mảnh giấy này nhé… chỉ là vài dòng, nhưng có lẽ đủ để em hiểu anh.",
+            "female": "Thư tình à? Anh vẫn còn tin vào những thứ đó sao?"
+        },
+        "prompt": "Consistent characters: female like Boa Hancock (shoulder-length hair, beige sweater, small necklace) & male like Zoro (short black hair, navy jacket, white shirt); keep same face/hair/outfit/accessories across all scenes (same seed/reference) — Bus stop at dusk: Minh kneels and places a folded note near Linh’s hand, cool sunset light, 3:2, 35mm film, shallow DOF, cinematic color grading."
     },
     {
         "scene": 2,
-        "dialogue": {"male": "Bật lửa kim cương của anh sẽ cứu chúng ta!", "female": "Hay… nướng marshmallow trị giá cả tỷ đô?"},
-        "prompt": "Same young Korean couple as scene 1, faces, body, and outfits consistent. Scene 2: man holding a diamond-studded lighter trying to start a fire, woman teasing with a tiny branch, exaggerated funny expressions. Background: dense jungle, cinematic lighting, bright colors, luxurious vs survival contrast, slapstick K-drama vibe."
+        "dialogue": {
+            "male": "Anh biết mình đã sai… và sẽ thay đổi, dù chỉ từng chút một.",
+            "female": "Từng chút một… liệu có đủ không, anh?"
+        },
+        "prompt": "Consistent characters: female like Boa Hancock & male like Zoro; keep same face/hair/outfit/accessories (same seed/reference) — Train station at daytime: Linh sits reading the folded note, Minh stands nearby waiting, cool light, close-up shot, 3:2, 35mm film, shallow DOF, cinematic color grading."
     },
     {
         "scene": 3,
-        "dialogue": {"male": "Anh mệt… nhưng vẫn đẹp trai chứ?", "female": "Đương nhiên! Mai mình xây biệt thự trên cây, thuê khỉ làm nhân viên!"},
-        "prompt": "Same young Korean couple as previous scenes, faces and outfits consistent. Scene 3: sitting exhausted on a log, surrounded by luxury handbags, sparkling jewelry, and playful monkeys, funny expressions, cinematic lighting, vibrant colors, luxury parody style, humorous and whimsical mood."
+        "dialogue": {
+            "male": "Anh đã viết ra mọi điều anh sẽ làm… em nói đi, anh nên bắt đầu từ đâu?",
+            "female": "Bắt đầu bằng việc đừng biến những lỗi nhỏ thành lý do để rời xa nhau."
+        },
+        "prompt": "Consistent characters: female like Boa Hancock & male like Zoro; keep full appearance (same seed/reference) — Café scene: both sit facing each other, folded note on the table between them, neutral warm light, medium-close shot, 3:2, 35mm film, shallow DOF, cinematic color grading."
+    },
+    {
+        "scene": 4,
+        "dialogue": {
+            "male": "Anh đã làm như những gì đã hứa… em xem đi.",
+            "female": "Em thấy rồi. Anh đã làm thật — không chỉ nói suông."
+        },
+        "prompt": "Consistent characters: female like Boa Hancock & male like Zoro; keep same outfit and appearance (same seed/reference) — Action close-up: Minh’s hand unfolds the note with the words 'already done', soft golden light, 3:2, 35mm film, shallow DOF, cinematic color grading."
+    },
+    {
+        "scene": 5,
+        "dialogue": {
+            "male": "Cảm ơn em vì đã cho anh thời gian… anh sẽ không để nó trôi qua vô nghĩa.",
+            "female": "Cho nhau một cơ hội không dễ, nhưng… mình thử lại nhé, từ hôm nay."
+        },
+        "prompt": "Consistent characters: female like Boa Hancock & male like Zoro; keep same face/hair/outfit/accessories (same seed/reference) — Balcony at sunrise: Linh hands Minh the folded note with a torn edge, soft golden morning light, wide-to-close framing, 3:2, 35mm film, shallow DOF, cinematic color grading."
     }
 ]
+
+
 
 # ---------------- Generate TTS ----------------
 def generate_tts(text: str, speaker: str) -> str:
@@ -59,21 +83,22 @@ def generate_tts(text: str, speaker: str) -> str:
 # ---------------- Generate AI Image with OpenAI ----------------
 async def generate_image(prompt: str, scene_num: int = 0) -> str:
     """
-    Tải ảnh placeholder từ Lorem Picsum để test video
+    Chạy hàm blocking generate_image_from_prompt trong thread và await kết quả.
+    Trả về đường dẫn file ảnh khi thành công, raise nếu thất bại.
     """
-    # Tạo URL ảnh ngẫu nhiên
-    width, height = 1024, 1024
-    url = f"https://picsum.photos/{width}/{height}?random={uuid.uuid4().hex[:6]}"
+    output_base = f"scene_{scene_num}"
+    print(f"🔁 [scene {scene_num}] Requesting image generation...")
 
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise Exception(f"Cannot download image from {url}")
+    # chạy hàm blocking trong thread để không block event loop
+    output_file = await asyncio.to_thread(generate_image_direct, prompt, output_base)
 
-    img_path = os.path.join(TEMP_DIR, f"lorem_{uuid.uuid4().hex[:4]}.jpg")
-    with open(img_path, "wb") as f:
-        f.write(response.content)
+    if not output_file:
+        # in debug file(s) nếu có
+        print(f"❌ [scene {scene_num}] generate_image_from_prompt returned None. Kiểm tra debug_fetch_*.json")
+        raise RuntimeError(f"❌ Tạo ảnh thất bại cho scene {scene_num}")
 
-    return img_path
+    print(f"✅ [scene {scene_num}] Image generated -> {output_file}")
+    return output_file
 
 # ---------------- Draw single dialogue on image ----------------
 def draw_text_on_image(image_path: str, speaker: str, text: str) -> str:
@@ -117,8 +142,8 @@ def create_slideshow_video(image_paths: list, audio_paths: list) -> str:
 async def create_trasua_reel(story_texts):
     image_paths, audio_paths = [], []
 
-    for s in story_texts:
-        img_path = await generate_image(s['prompt'])
+    for idx, s in enumerate(story_texts):
+        img_path = await generate_image(s['prompt'], scene_num=idx)
 
         # Tạo clip nam
         img_male = draw_text_on_image(img_path, "male", s['dialogue']['male'])
