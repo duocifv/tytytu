@@ -50,3 +50,5 @@ moviepy==1.0.3
 feedparser
 imageio[ffmpeg]
 elevenlabs
+opencv-python
+pillow
