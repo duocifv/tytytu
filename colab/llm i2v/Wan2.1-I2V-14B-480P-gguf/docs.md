@@ -2,6 +2,20 @@ QUY TRÌNH THỰC HIỆN HOÀN CHỈNHGiai đoạn A: Thiết lập Môi trườ
 %cd /content/ComfyUI/
 !apt -y install -qq aria2 ffmpeg # Đảm bảo có aria2
 
+Cài đặt Custom Nodes Bắt buộc (Qua Manager):
+Trong giao diện web ComfyUI, mở Manager.
+Chọn Install Custom Nodes.
+
+# --- Tìm và cài đặt hai node:
+
+# ComfyUI-GGUF
+
+# ComfyUI-VideoHelperSuite
+
+# ---
+
+Khởi động lại ComfyUI: Dừng cell đang chạy trong Colab và chạy lại cell đó để các node được áp dụng.
+
 # --- 1. Tải UNet GGUF (Diffusion Model - Kích thước lớn nhất, ~10 GB) ---
 
 # Chọn bản 480P Q4_0 để tối ưu cho T4
@@ -63,3 +77,9 @@ video: https://www.youtube.com/watch?v=-JE1tt_guGE
 git: https://github.com/city96/ComfyUI-GGUF
 huggingface: https://huggingface.co/city96/Wan2.1-I2V-14B-480P-gguf
 ============================================================================
+
+⚙️ --async-offload
+👉 Dịch: Tự động dỡ (offload) dữ liệu từ GPU sang CPU khi GPU gần đầy.
+
+⚙️ --dont-upcast-attention
+👉 Dịch: Không nâng độ chính xác (precision) của attention lên FP32.
