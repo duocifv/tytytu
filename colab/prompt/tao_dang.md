@@ -1,4 +1,5 @@
-Tạo hình ảnh một nữ diễn viên xinh đẹp, giữ nguyên hoàn toàn khuôn mặt từ ảnh tham chiếu.
+Tạo hình ảnh một nữ diễn viên xinh đẹp, yêu cầu bắt buộc giữ nguyên hoàn toàn khuôn mặt từ ảnh tham chiếu.
+
 Cơ thể cân đối, tỉ lệ hài hòa, dáng đứng tự nhiên và duyên dáng, phù hợp cho mô phỏng chuyển động trong sản xuất phim kỹ thuật số.
 
 Trang phục đơn giản, bó sát nhẹ và vừa vặn, tông màu trung tính, giúp dễ dàng xử lý chuyển động và ghép nền trong quá trình sản xuất video AI.
