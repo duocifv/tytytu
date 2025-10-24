@@ -12,6 +12,10 @@ Chọn Install Custom Nodes.
 
 # ComfyUI-VideoHelperSuite
 
+# ComfyUI-RealESRGAN_Upscaler
+
+# ComfyUI_yanc
+
 # ---
 
 Khởi động lại ComfyUI: Dừng cell đang chạy trong Colab và chạy lại cell đó để các node được áp dụng.
@@ -83,3 +87,69 @@ huggingface: https://huggingface.co/city96/Wan2.1-I2V-14B-480P-gguf
 
 ⚙️ --dont-upcast-attention
 👉 Dịch: Không nâng độ chính xác (precision) của attention lên FP32.
+
+⚡ 3 CÁCH GIẢM LAG, GIẢM THỜI GIAN CÀI COMFYUI TRONG COLAB
+🧩 Cách 1 – Tạo "snapshot" (đóng gói sẵn toàn bộ môi trường)
+
+Sau khi bạn cài xong và chạy ổn ComfyUI:
+
+!tar -czf comfyui_env.tar.gz /usr/local/lib/python3.12/dist-packages /content/ComfyUI
+
+→ tải file comfyui_env.tar.gz về (khoảng 2–3 GB).
+Lần sau chỉ cần:
+
+!tar -xzf comfyui_env.tar.gz -C /
+
+→ môi trường chạy ngay, không cần pip install gì nữa.
+
+⏱ Tiết kiệm: từ 15–20 phút → còn ~1 phút load.
+
+1️⃣ Tạo giọng nói (voice.wav)
+Tool Offline / Online Colab khả thi? Notes
+Bark TTS (multi-lang) Offline ✅ Có thể chạy Model nhẹ, hỗ trợ tiếng Việt
+VietTTS / VITS Offline ✅ Có thể chạy Chạy bằng PyTorch, GPU Colab ok
+ElevenLabs Online API ✅ Có thể chạy Gửi request API, cần internet và API key
+Coqui TTS Offline ✅ Có thể chạy Community model có tiếng Việt
+Tortoise-TTS Offline ✅ Có thể chạy Tiếng Việt đọc lệch, không khuyến nghị
+
+💡 Kết luận: Tất cả đều chạy nổi trên Colab, trừ Tortoise-TTS tiếng Việt chưa chuẩn.
+
+2️⃣ Tạo video nhân vật (ComfyUI)
+
+Colab: ✅ Có thể chạy
+
+Yêu cầu: GPU (T4, A100)
+
+Output: video video.mp4 từ frames / AI model (WanAI I2V, AnimateDiff…)
+
+3️⃣ Lip sync với Wav2Lip
+
+Input: video.mp4 + voice.wav
+
+Output: final_lipsync.mp4
+
+Colab: ✅ Chạy mượt với GPU
+
+Lưu ý: Wav2Lip chỉ lip sync 1 khuôn mặt chính
+
+4️⃣ (Tùy chọn) DeepFaceLab (swap face)
+
+Colab: ⚠️ Chạy được nhưng rất nặng, training lâu
+
+Khuyến nghị:
+
+Nếu chỉ swap 1 video ngắn → có thể chạy
+
+Video dài / nhiều khuôn mặt → nên dùng local PC mạnh hơn
+
+🔹 Kết luận workflow trên Colab
+
+TTS (Bark / VietTTS / Coqui / ElevenLabs) → voice.wav ✅
+
+ComfyUI → tạo video nhân vật ✅
+
+Wav2Lip → sync môi với voice.wav ✅
+
+DeepFaceLab → nếu swap face thì nặng, nhưng video ngắn chạy nổi ⚠️
+
+Như vậy, tất cả bước chính chạy nổi trên Colab, trừ DeepFaceLab cho video dài hoặc nhiều nhân vật thì hơi nặng, cần máy mạnh hơn.
