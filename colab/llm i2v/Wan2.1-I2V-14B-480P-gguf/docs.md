@@ -16,7 +16,16 @@ Chọn Install Custom Nodes.
 
 # ComfyUI_yanc
 
+# ComfyUI Frame Interpolation
+
+# ComfyUI Impact Pack
+
 # ---
+
+# ComfyUI-Easy-Use - del
+
+mội suy nội dung giữa 2 ảnh:
+https://github.com/Fannovel16/ComfyUI-Frame-Interpolation?tab=readme-ov-file
 
 Khởi động lại ComfyUI: Dừng cell đang chạy trong Colab và chạy lại cell đó để các node được áp dụng.
 
