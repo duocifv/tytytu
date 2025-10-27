@@ -20,6 +20,8 @@ Chọn Install Custom Nodes.
 
 # ComfyUI Impact Pack
 
+# ComfyUI Impact Subpack
+
 # ---
 
 # ComfyUI-Easy-Use - del
