@@ -224,6 +224,115 @@
       "bgcolor": "#3f5159"
     },
     {
+      "id": 54,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        977.0046997070312,
+        299.383056640625
+      ],
+      "size": [
+        239.1796112060547,
+        474.4497756958008
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 110
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "1.5.8",
+        "Node name for S&R": "VHS_VideoCombine",
+        "aux_id": "Kosinkadink/ComfyUI-VideoHelperSuite"
+      },
+      "widgets_values": {
+        "frame_rate": 12,
+        "loop_count": 0,
+        "filename_prefix": "wan_i2v_gguf",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 20,
+        "save_metadata": true,
+        "trim_to_audio": false,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "wan_i2v_gguf_00003.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 12,
+            "workflow": "wan_i2v_gguf_00003.png",
+            "fullpath": "/content/ComfyUI/output/wan_i2v_gguf_00003.mp4"
+          }
+        }
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 57,
+      "type": "PreviewImage",
+      "pos": [
+        507.93639275692885,
+        -204.72854863743373
+      ],
+      "size": [
+        656.2715712612376,
+        326.0467983115676
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 112
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.66",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
       "id": 8,
       "type": "VAEDecode",
       "pos": [
@@ -267,49 +376,6 @@
         "Node name for S&R": "VAEDecode"
       },
       "widgets_values": [],
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
-    {
-      "id": 7,
-      "type": "CLIPTextEncode",
-      "pos": [
-        -714.7431030273438,
-        531.0228881835938
-      ],
-      "size": [
-        425.27801513671875,
-        180.6060791015625
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 75
-        }
-      ],
-      "outputs": [
-        {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "slot_index": 0,
-          "links": [
-            98
-          ]
-        }
-      ],
-      "title": "CLIP Text Encode (Negative Prompt)",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.18",
-        "Node name for S&R": "CLIPTextEncode"
-      },
-      "widgets_values": [
-        "blurry, distorted face, bad anatomy, open mouth teeth, low quality, overexposed, watermark, text\n"
-      ],
       "color": "#2a363b",
       "bgcolor": "#3f5159"
     },
@@ -390,176 +456,9 @@
       "widgets_values": [
         832,
         480,
-        49,
+        25,
         1
       ],
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
-    {
-      "id": 52,
-      "type": "LoadImage",
-      "pos": [
-        -1121.212158203125,
-        298.3013610839844
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "slot_index": 0,
-          "links": [
-            106,
-            109
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "slot_index": 1,
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.18",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "Shot 2 – Ghi chép trong sổ cũ .jpeg",
-        "image"
-      ],
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
-    {
-      "id": 6,
-      "type": "CLIPTextEncode",
-      "pos": [
-        -714.7431030273438,
-        291.076416015625
-      ],
-      "size": [
-        422.84503173828125,
-        164.31304931640625
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 74
-        }
-      ],
-      "outputs": [
-        {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "slot_index": 0,
-          "links": [
-            97
-          ]
-        }
-      ],
-      "title": "CLIP Text Encode (Positive Prompt)",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.18",
-        "Node name for S&R": "CLIPTextEncode"
-      },
-      "widgets_values": [
-        " 4s close-up of barber writing, camera pans slowly, 35mm film texture, ticking clock sound."
-      ],
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
-    {
-      "id": 54,
-      "type": "VHS_VideoCombine",
-      "pos": [
-        977.0046997070312,
-        299.383056640625
-      ],
-      "size": [
-        239.1796112060547,
-        474.4497756958008
-      ],
-      "flags": {},
-      "order": 12,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 110
-        },
-        {
-          "name": "audio",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "meta_batch",
-          "shape": 7,
-          "type": "VHS_BatchManager",
-          "link": null
-        },
-        {
-          "name": "vae",
-          "shape": 7,
-          "type": "VAE",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "Filenames",
-          "type": "VHS_FILENAMES",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui-videohelpersuite",
-        "ver": "1.5.8",
-        "Node name for S&R": "VHS_VideoCombine",
-        "aux_id": "Kosinkadink/ComfyUI-VideoHelperSuite"
-      },
-      "widgets_values": {
-        "frame_rate": 12,
-        "loop_count": 0,
-        "filename_prefix": "wan_i2v_gguf",
-        "format": "video/h264-mp4",
-        "pix_fmt": "yuv420p",
-        "crf": 20,
-        "save_metadata": true,
-        "trim_to_audio": false,
-        "pingpong": false,
-        "save_output": true,
-        "videopreview": {
-          "hidden": false,
-          "paused": false,
-          "params": {
-            "filename": "wan_i2v_gguf_00002.mp4",
-            "subfolder": "",
-            "type": "output",
-            "format": "video/h264-mp4",
-            "frame_rate": 12,
-            "workflow": "wan_i2v_gguf_00002.png",
-            "fullpath": "/content/ComfyUI/output/wan_i2v_gguf_00002.mp4"
-          }
-        }
-      },
       "color": "#2a363b",
       "bgcolor": "#3f5159"
     },
@@ -615,9 +514,9 @@
         "Node name for S&R": "KSampler"
       },
       "widgets_values": [
-        561459223673666,
+        888139911152544,
         "randomize",
-        14,
+        20,
         7.1,
         "dpmpp_sde_gpu",
         "simple",
@@ -625,35 +524,6 @@
       ],
       "color": "#2a363b",
       "bgcolor": "#3f5159"
-    },
-    {
-      "id": 57,
-      "type": "PreviewImage",
-      "pos": [
-        507.93639275692885,
-        -204.72854863743373
-      ],
-      "size": [
-        656.2715712612376,
-        326.0467983115676
-      ],
-      "flags": {},
-      "order": 13,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 112
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.66",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
     },
     {
       "id": 59,
@@ -689,13 +559,143 @@
         "Node name for S&R": "> Save Image"
       },
       "widgets_values": [
-        "film 2",
+        "ComfyUI/t1",
         "",
         false,
         true,
         "png",
         100
       ]
+    },
+    {
+      "id": 7,
+      "type": "CLIPTextEncode",
+      "pos": [
+        -714.7431030273438,
+        531.0228881835938
+      ],
+      "size": [
+        425.27801513671875,
+        180.6060791015625
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 75
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            98
+          ]
+        }
+      ],
+      "title": "CLIP Text Encode (Negative Prompt)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.18",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "blurry, distorted face, bad anatomy, open mouth teeth, low quality, overexposed, watermark, text\n"
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 52,
+      "type": "LoadImage",
+      "pos": [
+        -1121.212158203125,
+        298.3013610839844
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            106,
+            109
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.18",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "3.jpg",
+        "image"
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 6,
+      "type": "CLIPTextEncode",
+      "pos": [
+        -714.7431030273438,
+        291.076416015625
+      ],
+      "size": [
+        422.84503173828125,
+        164.31304931640625
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 74
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            97
+          ]
+        }
+      ],
+      "title": "CLIP Text Encode (Positive Prompt)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.18",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "Set Scene: (Actor: Woman's hands; Object: Antique hourglass, black stone pedestal). Action: Woman's hands slowly, deliberately places the hourglass; the flow of sand begins immediately. Camera Movement: Slow Tilt Down followed by a minimal, sharp Push-In to magnify the flowing sand. Effect: Ritualistic finality, magnification of time's beginning. Duration: 2 seconds."
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
     }
   ],
   "links": [
@@ -940,10 +940,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6303940863128853,
+      "scale": 0.8390545288824505,
       "offset": [
-        1100.2231089050174,
-        336.2042926153085
+        168.127439456145,
+        -36.7822628468615
       ]
     },
     "frontendVersion": "1.28.8",

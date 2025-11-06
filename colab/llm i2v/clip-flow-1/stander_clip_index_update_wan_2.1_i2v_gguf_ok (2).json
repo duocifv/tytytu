@@ -271,44 +271,45 @@
       "bgcolor": "#3f5159"
     },
     {
-      "id": 7,
-      "type": "CLIPTextEncode",
+      "id": 52,
+      "type": "LoadImage",
       "pos": [
-        -714.7431030273438,
-        531.0228881835938
+        -1121.212158203125,
+        298.3013610839844
       ],
       "size": [
-        425.27801513671875,
-        180.6060791015625
+        315,
+        314
       ],
       "flags": {},
-      "order": 7,
+      "order": 5,
       "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 75
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
+          "name": "IMAGE",
+          "type": "IMAGE",
           "slot_index": 0,
           "links": [
-            98
+            106,
+            109
           ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": null
         }
       ],
-      "title": "CLIP Text Encode (Negative Prompt)",
       "properties": {
         "cnr_id": "comfy-core",
         "ver": "0.3.18",
-        "Node name for S&R": "CLIPTextEncode"
+        "Node name for S&R": "LoadImage"
       },
       "widgets_values": [
-        "blurry, distorted face, bad anatomy, open mouth teeth, low quality, overexposed, watermark, text\n"
+        "Whisk_d883e48d9959291a8284a778c86539b6dr.jpeg",
+        "image"
       ],
       "color": "#2a363b",
       "bgcolor": "#3f5159"
@@ -388,97 +389,10 @@
         "Node name for S&R": "WanImageToVideo"
       },
       "widgets_values": [
-        832,
         480,
-        49,
+        848,
+        9,
         1
-      ],
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
-    {
-      "id": 52,
-      "type": "LoadImage",
-      "pos": [
-        -1121.212158203125,
-        298.3013610839844
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "slot_index": 0,
-          "links": [
-            106,
-            109
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "slot_index": 1,
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.18",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "Shot 2 – Ghi chép trong sổ cũ .jpeg",
-        "image"
-      ],
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
-    {
-      "id": 6,
-      "type": "CLIPTextEncode",
-      "pos": [
-        -714.7431030273438,
-        291.076416015625
-      ],
-      "size": [
-        422.84503173828125,
-        164.31304931640625
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 74
-        }
-      ],
-      "outputs": [
-        {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "slot_index": 0,
-          "links": [
-            97
-          ]
-        }
-      ],
-      "title": "CLIP Text Encode (Positive Prompt)",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.18",
-        "Node name for S&R": "CLIPTextEncode"
-      },
-      "widgets_values": [
-        " 4s close-up of barber writing, camera pans slowly, 35mm film texture, ticking clock sound."
       ],
       "color": "#2a363b",
       "bgcolor": "#3f5159"
@@ -492,7 +406,7 @@
       ],
       "size": [
         239.1796112060547,
-        474.4497756958008
+        735.2173131306967
       ],
       "flags": {},
       "order": 12,
@@ -541,7 +455,7 @@
         "filename_prefix": "wan_i2v_gguf",
         "format": "video/h264-mp4",
         "pix_fmt": "yuv420p",
-        "crf": 20,
+        "crf": 18,
         "save_metadata": true,
         "trim_to_audio": false,
         "pingpong": false,
@@ -550,18 +464,175 @@
           "hidden": false,
           "paused": false,
           "params": {
-            "filename": "wan_i2v_gguf_00002.mp4",
+            "filename": "wan_i2v_gguf_00007.mp4",
             "subfolder": "",
             "type": "output",
             "format": "video/h264-mp4",
             "frame_rate": 12,
-            "workflow": "wan_i2v_gguf_00002.png",
-            "fullpath": "/content/ComfyUI/output/wan_i2v_gguf_00002.mp4"
+            "workflow": "wan_i2v_gguf_00007.png",
+            "fullpath": "/content/ComfyUI/output/wan_i2v_gguf_00007.mp4"
           }
         }
       },
       "color": "#2a363b",
       "bgcolor": "#3f5159"
+    },
+    {
+      "id": 59,
+      "type": "> Save Image",
+      "pos": [
+        594.1173319067444,
+        436.8355197677157
+      ],
+      "size": [
+        270,
+        410
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 113
+        },
+        {
+          "name": "filename_opt",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "ComfyUI_yanc",
+        "ver": "923c366c2937cf6ce55e8a808e29f23831281bb5",
+        "Node name for S&R": "> Save Image"
+      },
+      "widgets_values": [
+        "film 2",
+        "",
+        false,
+        true,
+        "png",
+        100
+      ]
+    },
+    {
+      "id": 7,
+      "type": "CLIPTextEncode",
+      "pos": [
+        -714.7431030273438,
+        531.0228881835938
+      ],
+      "size": [
+        425.27801513671875,
+        180.6060791015625
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 75
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            98
+          ]
+        }
+      ],
+      "title": "CLIP Text Encode (Negative Prompt)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.18",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "low quality, jpeg artifacts, watermark, text, logo, oversharpen, neon glow, harsh rim light, duplicate face\n"
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 6,
+      "type": "CLIPTextEncode",
+      "pos": [
+        -714.7431030273438,
+        291.076416015625
+      ],
+      "size": [
+        422.84503173828125,
+        164.31304931640625
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 74
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            97
+          ]
+        }
+      ],
+      "title": "CLIP Text Encode (Positive Prompt)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.18",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "CHAR_A + CHAR_B\nCOSTUME:neutral everyday clothing\nEMO:contained\nACT:slow inhale subtle\nEMO:gaze flicker subtle\nMOVE:handheld subtle\nLIGHT:soft neutral\nCOLOR:a24-soft-neutral\nSPACE:minimal matte surfaces\nDEPTH:foreground-mid separation\nOBJECT:a single half-full glass\nCAM:medium-close chest-up vertical\nCOMP:eye-line upper third\nGRAIN:film subtle\nFPS:24\nAR:9:16"
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 57,
+      "type": "PreviewImage",
+      "pos": [
+        385.35794706641155,
+        -511.89571254425886
+      ],
+      "size": [
+        722.6081418702233,
+        619.987207141126
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 112
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.66",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
     },
     {
       "id": 3,
@@ -615,87 +686,16 @@
         "Node name for S&R": "KSampler"
       },
       "widgets_values": [
-        561459223673666,
+        426914607401778,
         "randomize",
         14,
-        7.1,
-        "dpmpp_sde_gpu",
+        4.6,
+        "dpmpp_2m_sde_gpu",
         "simple",
         1
       ],
       "color": "#2a363b",
       "bgcolor": "#3f5159"
-    },
-    {
-      "id": 57,
-      "type": "PreviewImage",
-      "pos": [
-        507.93639275692885,
-        -204.72854863743373
-      ],
-      "size": [
-        656.2715712612376,
-        326.0467983115676
-      ],
-      "flags": {},
-      "order": 13,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 112
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.66",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 59,
-      "type": "> Save Image",
-      "pos": [
-        594.1173319067444,
-        436.8355197677157
-      ],
-      "size": [
-        270,
-        410
-      ],
-      "flags": {},
-      "order": 14,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 113
-        },
-        {
-          "name": "filename_opt",
-          "shape": 7,
-          "type": "STRING",
-          "link": null
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "ComfyUI_yanc",
-        "ver": "923c366c2937cf6ce55e8a808e29f23831281bb5",
-        "Node name for S&R": "> Save Image"
-      },
-      "widgets_values": [
-        "film 2",
-        "",
-        false,
-        true,
-        "png",
-        100
-      ]
     }
   ],
   "links": [
@@ -940,10 +940,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6303940863128853,
+      "scale": 0.6934334949441745,
       "offset": [
-        1100.2231089050174,
-        336.2042926153085
+        346.2184369218573,
+        148.82356870650594
       ]
     },
     "frontendVersion": "1.28.8",
